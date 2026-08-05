@@ -1,0 +1,43 @@
+<!-- Header -->
+<app-nav-header title="" (back)="voltar()"></app-nav-header>
+
+<ng-container *ngIf="capitulo">
+    <!-- Título -->
+    <section class="capitulo-header">
+        <p class="capitulo-header__numero">CAPÍTULO {{ capitulo.numero }}</p>
+        <h1 class="capitulo-header__title">{{ capitulo.titulo }}</h1>
+        <div class="capitulo-header__meta">
+            <span class="capitulo-header__tag">Nutrição</span>
+            <span class="capitulo-header__duration">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/assets/icons.svg#clock" /></svg>
+                5 min
+            </span>
+        </div>
+    </section>
+
+    <main class="capitulo-main">
+
+        <!-- Carrossel: apenas fundamentos -->
+        <div class="capitulo-carrossel" #carrossel (scroll)="onScroll($event)">
+            <div class="card-conteudo--fundamento" *ngFor="let card of fundamentos">
+                <p class="card-conteudo--fundamento__label">Fundamento</p>
+                <p class="card-conteudo--fundamento__text">{{ card.texto }}</p>
+            </div>
+        </div>
+
+        <!-- Dots: clicáveis para navegação rápida -->
+        <div class="capitulo-dots" *ngIf="fundamentos.length > 1">
+            <span class="capitulo-dots__dot" *ngFor="let f of fundamentos; let i = index"
+                [style.background-color]="i === paginaAtiva ? '#1e5c3a' : '#ccc'"
+                [class.capitulo-dots__dot--active]="i === paginaAtiva"
+                (click)="irParaCard(i)"></span>
+        </div>
+
+        <!-- Card sabia que: único, abaixo do carrossel -->
+        <div class="capitulo-sabiaque" *ngIf="sabiaque">
+            <p class="capitulo-sabiaque__label">SABIA QUE?</p>
+            <p class="capitulo-sabiaque__text">{{ sabiaque.texto }}</p>
+        </div>
+
+    </main>
+</ng-container>

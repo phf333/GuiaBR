@@ -1,0 +1,101 @@
+<!-- Header -->
+<app-nav-header title="Escanear Alimento" (back)="voltar()"></app-nav-header>
+
+<!-- Content -->
+<main class="escanear-main">
+  <!-- Viewfinder -->
+  <div class="escanear-viewfinder" (click)="onClick()">
+    <div class="escanear-viewfinder__corners">
+      <span class="escanear-viewfinder__corner escanear-viewfinder__corner--tl"></span>
+      <span class="escanear-viewfinder__corner escanear-viewfinder__corner--tr"></span>
+      <span class="escanear-viewfinder__corner escanear-viewfinder__corner--bl"></span>
+      <span class="escanear-viewfinder__corner escanear-viewfinder__corner--br"></span>
+    </div>
+
+    <zxing-scanner
+      *ngIf="showScanner"
+      [formats]="allowedFormats"
+      (scanSuccess)="handleScanSuccess($event)"
+      class="escanear-viewfinder__scanner"
+    ></zxing-scanner>
+
+    <div *ngIf="!showScanner" class="escanear-viewfinder__placeholder">
+      <span class="escanear-viewfinder__placeholder-line"></span>
+    </div>
+
+    <p class="escanear-viewfinder__hint">Aponte para o código de barras</p>
+  </div>
+
+  <!-- Últimos escaneados -->
+  <p class="section-label">ÚLTIMOS ESCANEADOS</p>
+
+  <div class="escanear-history" *ngIf="ultimosEscaneados.length > 0">
+    <div class="escanear-history__item" *ngFor="let item of ultimosEscaneados" (click)="verResultado(item)">
+      <!-- Thumbnail do produto, se houver imagem cadastrada -->
+      <img
+        *ngIf="item.imageUrl"
+        [src]="item.imageUrl"
+        alt="Foto do produto"
+        class="escanear-history__thumb"
+        [ngClass]="'escanear-history__thumb--' + item.tipo"
+      />
+
+      <!-- Ícone padrão em círculo colorido se não houver imagem -->
+      <div
+        *ngIf="!item.imageUrl"
+        class="escanear-history__icon"
+        [ngClass]="'escanear-history__icon--' + item.tipo"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="escanear-history__icon-svg"
+          [ngClass]="'escanear-history__icon-svg--' + item.tipo"
+        >
+          <use [attr.href]="'/assets/icons.svg#' + (item.tipo === 'ultraprocessado' ? 'alert-circle' : (item.tipo === 'indisponivel' ? 'info-circle' : 'check-circle'))" />
+        </svg>
+      </div>
+      <div class="escanear-history__text">
+        <p class="escanear-history__nome">{{ item.nome }}</p>
+        <p
+          class="escanear-history__label"
+          [ngClass]="'escanear-history__label--' + item.tipo"
+        >
+          {{ item.label }}
+        </p>
+      </div>
+      <button class="escanear-history__delete" (click)="excluirHistorico($event, item)" [id]="'btn-deletar-' + (item.barcode || item.nome)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><use href="/assets/icons.svg#trash" /></svg>
+      </button>
+      <svg
+        class="chevron-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      ><use href="/assets/icons.svg#chevron-right" /></svg>
+    </div>
+  </div>
+
+  <div class="escanear-empty" *ngIf="ultimosEscaneados.length === 0">
+    <span class="escanear-empty__emoji">🔍</span>
+    <p class="escanear-empty__title">Nenhum produto escaneado</p>
+    <p class="escanear-empty__subtitle">Os alimentos que você escanear aparecerão aqui no seu histórico.</p>
+  </div>
+</main>
+
+<!-- Tela de Carregamento / Overlay de Processamento -->
+<div *ngIf="carregandoDetalhes" class="escanear-loading">
+  <div class="escanear-loading__card">
+    <div class="escanear-loading__spinner">
+      <div class="escanear-loading__spinner-pulse"></div>
+      <div class="escanear-loading__spinner-spin"></div>
+    </div>
+    <div class="escanear-loading__text">
+      <p class="escanear-loading__title">Analisando Alimento</p>
+      <p class="escanear-loading__subtitle">Buscando grau de processamento...</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,148 @@
+<!-- Header -->
+<header class="header">
+    <button class="icon-btn" (click)="irParaHome()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/assets/icons.svg#chevron-left" /></svg>
+    </button>
+    <button class="icon-btn" (click)="confirmarResetarProgresso()" title="Resetar progresso" id="btn-resetar-progresso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/assets/icons.svg#refresh" /></svg>
+    </button>
+</header>
+
+<!-- Título -->
+<section class="guia-header">
+    <span class="guia-header__badge">GUIA OFICIAL</span>
+    <h1 class="guia-header__title">Guia Alimentar<br>Brasileiro</h1>
+    <p class="guia-header__progress">{{ progresso$ | async }}</p>
+</section>
+
+<!-- Lista de capítulos -->
+<main class="guia-list">
+    <div class="guia-item" [ngClass]="'guia-item--' + cap.status"
+        *ngFor="let cap of (capitulos$ | async)"
+        (click)="abrirCapitulo(cap)">
+
+        <div class="guia-item__bar"></div>
+
+        <div class="guia-item__body">
+            <p class="guia-item__number">Capítulo {{ cap.numero }}</p>
+            <p class="guia-item__title">
+                {{ cap.titulo }}
+            </p>
+        </div>
+
+        <div class="guia-item__status">
+            <!-- Ícone de status: concluído (check-circle) / ativo (chevron-right) / bloqueado (lock) -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                class="guia-item__status-icon">
+                <use [attr.href]="'/assets/icons.svg#' + (cap.status === 'done' ? 'check-circle' : (cap.status === 'active' ? 'chevron-right' : 'lock'))" />
+            </svg>
+        </div>
+    </div>
+
+    <!-- Referências do Guia -->
+    <div class="guia-about">
+        <div class="guia-about__heading">
+            <span>Sobre o Guia Alimentar</span>
+        </div>
+        <p class="guia-about__text">
+            O <strong>Guia Alimentar para a População Brasileira</strong> é o documento oficial que apresenta as
+            diretrizes alimentares do governo federal para promover a saúde e a alimentação saudável no país.
+        </p>
+
+        <!-- Detalhes Expansíveis da Ficha Técnica -->
+        <details class="guia-ficha">
+            <summary class="guia-ficha__summary">
+                Ver Ficha Técnica Completa
+            </summary>
+            <div class="guia-ficha__content">
+                <div>
+                    <p class="guia-ficha__label">Elaboração, distribuição e Informações:</p>
+                    <p class="guia-ficha__emphasis">MINISTÉRIO DA SAÚDE</p>
+                    <p>Secretaria de Atenção à Saúde</p>
+                    <p>Departamento de Atenção Básica</p>
+                    <p>Edifício Premium, SAF Sul, Quadra 2, lotes 5/6, bloco II, Subsolo</p>
+                    <p>CEP: 70070-600 – Brasília/DF</p>
+                    <p>Fone: (61) 3315-9031</p>
+                    <p>E-mail: dab@saude.gov.br</p>
+                    <p>Site: dab.saude.gov.br</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Editor Geral:</p>
+                    <p>Eduardo Alves Melo</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Coordenação Técnica Geral:</p>
+                    <p>Patrícia Constante Jaime</p>
+                    <p class="guia-ficha__note">Coordenação-Geral de Alimentação e Nutrição do Ministério
+                        da Saúde</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Elaboração Técnica:</p>
+                    <p>Carlos Augusto Monteiro</p>
+                    <p class="guia-ficha__note">Núcleo de Pesquisas Epidemiológicas em Nutrição e Saúde da
+                        Universidade de São Paulo</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Colaboração Técnica:</p>
+                    <p class="guia-ficha__note--strong">Coordenação-Geral de Alimentação e Nutrição
+                        do Ministério da Saúde</p>
+                    <p>Ana Carolina Feldenheimer da Silva, Ana Luisa Souza de Paiva, Bruna Pitasi Arguelhes,
+                        Fernanda Rauber, Gisele Ane Bortolini, Kelly Poliany de Souza Alves, Kimielle Cristina Silva,
+                        Lorena Toledo de Araújo Melo, Mara Lucia dos Santos Costa, Renata Guimarães Mendonça de Santana.
+                    </p>
+
+                    <p class="guia-ficha__note--strong">Núcleo de Pesquisas Epidemiológicas em
+                        Nutrição e Saúde da USP</p>
+                    <p>Ana Paula Bortoletto Martins, Carla Adriano Martins, Carlos Augusto Monteiro
+                        (Coordenador), Daniela Silva Canella, Denise Costa Coitinho, Enrique Jacoby, Francine Lima,
+                        Geoffrey Cannon, Jean-Claude Moubarac, Josefa Maria Fellegger Garzillo, Larissa Galastri
+                        Baraldi, Maluh Barciotte, Maria Laura da Costa Louzada, Rafael Moreira Claro, Regina Rodrigues,
+                        Renata Bertazzi Levy, Semíramis Martins Álvares Domene.</p>
+
+                    <p class="guia-ficha__note--strong">Organização Pan-Americana da Saúde</p>
+                    <p>Ana Carolina Feldenheimer da Silva, Janine Giuberti Coutinho.</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Coordenação Editorial:</p>
+                    <p>Laeticia Jensen Eble, Marco Aurélio Santana da Silva.</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Fotografias:</p>
+                    <p>Acervo DAB, Acervo USP, Luciana Melo - DAB.</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Projeto Gráfico, Diagramação e Capa:</p>
+                    <p>Sávio Marques</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Ajustes de Diagramação:</p>
+                    <p>Roosevelt Ribeiro Teixeira</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Normalização:</p>
+                    <p>Daniela Ferreira Barros da Silva – Editora MS/CGDI</p>
+                </div>
+
+                <div>
+                    <p class="guia-ficha__label">Revisão:</p>
+                    <p>Ana Paula Reis, Laeticia Jensen Eble.</p>
+                </div>
+            </div>
+        </details>
+
+        <a href="https://www.gov.br/saude/pt-br/assuntos/saude-brasil/publicacoes-para-promocao-a-saude/guia_alimentar_populacao_brasileira_2ed.pdf/@@download/file"
+            target="_blank"
+            class="guia-about__link">
+            Acessar Guia Completo (PDF)
+        </a>
+    </div>
+</main>

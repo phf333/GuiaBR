@@ -1,0 +1,72 @@
+<div class="home-hero">
+  <header class="home-hero__topbar">
+    <div class="home-hero__brand">
+      <span>GuiaBR</span>
+    </div>
+    <button class="home-hero__logout" (click)="logout()" title="Sair" id="btn-logout">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        width="20"
+        height="20"
+      ><use href="/assets/icons.svg#logout" /></svg>
+    </button>
+  </header>
+
+  <section class="home-hero__welcome">
+    <p class="home-hero__eyebrow">BEM-VINDO DE VOLTA</p>
+    <h1 class="home-hero__title">
+      Olá, {{ (usuarioAtual?.nome || 'Usuário').split(' ')[0] }}!
+    </h1>
+  </section>
+</div>
+
+<main class="home-main">
+  <div class="home-info">
+    <div class="home-info__icon">i</div>
+    <p>
+      Este aplicativo baseia-se nas diretrizes oficiais do
+      <strong>Guia Alimentar para a População Brasileira</strong> (Ministério da Saúde).
+    </p>
+  </div>
+
+  <div class="home-section">
+    <p class="section-label">PARA VOCÊ</p>
+
+    <div class="home-cards">
+      <div
+        class="home-card"
+        *ngFor="let item of menuItems"
+        (click)="onCardClick(item)"
+      >
+        <div class="home-card__icon" [ngStyle]="{ background: item.bgColor }">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            [attr.stroke]="item.iconColor"
+            stroke-width="2"
+            width="22"
+            height="22"
+          ><use [attr.href]="'/assets/icons.svg#' + (item.icon === 'guia' ? 'doc-list' : (item.icon === 'camera' ? 'camera' : 'fork-knife'))" /></svg>
+        </div>
+
+        <div class="home-card__text">
+          <p class="card-title-text">{{ item.title }}</p>
+          <p class="home-card__subtitle">
+            {{ item.subtitle }}
+          </p>
+        </div>
+
+        <svg
+          class="chevron-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        ><use href="/assets/icons.svg#chevron-right" /></svg>
+      </div>
+    </div>
+  </div>
+</main>

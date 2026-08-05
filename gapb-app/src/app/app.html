@@ -1,0 +1,34 @@
+<div class="phone-wrapper">
+  <div *ngIf="isOffline" class="app-banner app-banner--offline">
+    <span>⚠️ Modo Offline — Salvo localmente</span>
+  </div>
+
+  <div *ngIf="updateAvailable" class="app-banner app-banner--update">
+    <span>🔄 Nova versão disponível</span>
+    <button (click)="recarregarApp()" class="app-banner__link">Atualizar</button>
+  </div>
+
+  <div *ngIf="showInstallBanner" class="app-banner app-banner--install">
+    <span>📲 Instale o GuiaBR na tela inicial</span>
+    <button (click)="instalarApp()" class="app-banner__link">Instalar</button>
+    <button (click)="dispensarInstalacao()" class="app-banner__dismiss" aria-label="Dispensar">✕</button>
+  </div>
+
+  <div class="router-container">
+    <router-outlet />
+  </div>
+
+  <nav class="bottom-nav" *ngIf="showNav">
+    <button class="nav-btn" routerLink="/home" routerLinkActive="nav-btn--active">
+      <span class="icon-nav icon-home"></span>
+    </button>
+    <button class="nav-btn nav-btn--main" routerLink="/escanear" routerLinkActive="nav-btn--active">
+      <span class="icon-nav icon-camera"></span>
+    </button>
+    <button class="nav-btn" routerLink="/prato" routerLinkActive="nav-btn--active">
+      <span class="icon-nav icon-prato"></span>
+    </button>
+  </nav>
+
+  <app-dialog></app-dialog>
+</div>

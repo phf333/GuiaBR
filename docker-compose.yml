@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: guiabr_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env (copie .env.example)}
+      POSTGRES_DB: alimentos
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: guiabr_backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env (copie .env.example)}@db:5432/alimentos
+      - SECRET_KEY=${SECRET_KEY:?defina SECRET_KEY no .env (copie .env.example)}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?defina JWT_SECRET_KEY no .env (copie .env.example)}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://localhost,https://192.168.1.233}
+    expose:
+      - "5000"
+
+  frontend:
+    build: ./gapb-app
+    container_name: guiabr_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./gapb-app/certificados:/etc/nginx/certs:ro
+
+volumes:
+  pgdata:

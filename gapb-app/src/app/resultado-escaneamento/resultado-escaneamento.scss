@@ -1,0 +1,135 @@
+@use '../../styles/shared' as shared;
+
+.resultado-main {
+  flex: 1;
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.resultado-card {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  box-shadow: shared.$shadow-card;
+
+  &__thumb {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 0.75rem;
+    background: #f5f5ed;
+    flex-shrink: 0;
+    object-fit: contain;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__thumb-icon {
+    width: 1.6rem;
+    height: 1.6rem;
+    stroke: #bbb;
+  }
+
+  &__info {
+    flex: 1;
+  }
+
+  &__marca {
+    font-size: 0.8rem;
+    color: #999;
+  }
+}
+
+.alerta {
+  border-radius: 14px;
+  display: flex;
+  overflow: hidden;
+
+  &--vermelho {
+    background: var(--red-light);
+  }
+  &--verde {
+    background: var(--primary-bg);
+  }
+  &--cinza {
+    background: #f5f5f5;
+  }
+
+  &__bar {
+    width: 0.25rem;
+    flex-shrink: 0;
+  }
+  &--vermelho &__bar {
+    background: var(--red-stroke);
+  }
+  &--verde &__bar {
+    background: var(--primary-color);
+  }
+  &--cinza &__bar {
+    background: #777777;
+  }
+
+  &__body {
+    flex: 1;
+    padding: 14px 16px;
+    display: flex;
+    gap: 0.625rem;
+    align-items: flex-start;
+  }
+
+  &__icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+  &--vermelho &__icon {
+    stroke: var(--red-stroke);
+  }
+  &--verde &__icon {
+    stroke: var(--primary-color);
+  }
+  &--cinza &__icon {
+    stroke: #777777;
+  }
+
+  &__titulo {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+  }
+
+  &__descricao {
+    font-size: 0.85rem;
+    line-height: 1.375;
+  }
+
+  &--vermelho &__titulo,
+  &--vermelho &__descricao {
+    color: var(--red-color);
+  }
+  &--verde &__titulo,
+  &--verde &__descricao {
+    color: var(--background-dark);
+  }
+  &--cinza &__titulo,
+  &--cinza &__descricao {
+    color: #555555;
+  }
+}
+
+.resultado-aviso {
+  font-size: 0.75rem;
+  color: #999;
+  line-height: 1.375;
+  text-align: center;
+  padding: 0 8px;
+}

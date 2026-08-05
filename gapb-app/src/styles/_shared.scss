@@ -1,0 +1,22 @@
+// Padroes de CSS repetidos identicos entre varias paginas roteadas (prato,
+// prato-detalhe, guia, tela-inicial, resultado-escaneamento, pag-escaneamento).
+// Centralizado aqui para essas paginas nao redeclararem os mesmos valores.
+
+$shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+// Botao circular de excluir (fundo vermelho claro), usado em listas de itens
+@mixin icon-btn-delete {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--red-light);
+  color: var(--red-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.9;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}

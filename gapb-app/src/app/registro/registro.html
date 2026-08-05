@@ -1,0 +1,74 @@
+<div class="login-page">
+  <div class="login-card">
+    <h1 class="login-card__title">Criar conta</h1>
+    <p class="login-card__subtitle">Comece sua jornada alimentar</p>
+
+    <form class="login-form" (ngSubmit)="onSubmit()" #form="ngForm">
+      <div class="field">
+        <label for="nome">Nome</label>
+        <input
+          id="nome"
+          type="text"
+          [(ngModel)]="nome"
+          name="nome"
+          placeholder="Seu nome completo"
+          autocomplete="name"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input
+          id="email"
+          type="email"
+          [(ngModel)]="email"
+          name="email"
+          placeholder="seu@email.com"
+          autocomplete="email"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label for="senha">Senha</label>
+        <input
+          id="senha"
+          type="password"
+          [(ngModel)]="senha"
+          name="senha"
+          placeholder="Mínimo 6 caracteres"
+          autocomplete="new-password"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label for="confirmarSenha">Confirmar senha</label>
+        <input
+          id="confirmarSenha"
+          type="password"
+          [(ngModel)]="confirmarSenha"
+          name="confirmarSenha"
+          placeholder="••••••••"
+          autocomplete="new-password"
+          required
+        />
+      </div>
+
+      <div class="form-error" *ngIf="erro">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><use href="/assets/icons.svg#alert-circle-solid" /></svg>
+        {{ erro }}
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="carregando">
+        <span *ngIf="!carregando">Criar conta</span>
+        <span *ngIf="carregando" class="spinner"></span>
+      </button>
+    </form>
+
+    <p class="login-card__footer">
+      Já tem uma conta? <a routerLink="/login">Entrar</a>
+    </p>
+  </div>
+</div>

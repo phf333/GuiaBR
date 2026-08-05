@@ -1,0 +1,45 @@
+  <!-- Header -->
+  <app-nav-header title="Resultado" (back)="voltar()"></app-nav-header>
+
+  <!-- Content -->
+  <main class="resultado-main">
+    <!-- Card do produto -->
+    <div class="resultado-card">
+      <img
+        *ngIf="produto?.product?.image_url"
+        [src]="produto.product.image_url"
+        alt="Imagem do produto"
+        class="resultado-card__thumb"
+      />
+      <div *ngIf="!produto?.product?.image_url" class="resultado-card__thumb">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="resultado-card__thumb-icon"><use href="/assets/icons.svg#image-placeholder" /></svg>
+      </div>
+      <div class="resultado-card__info">
+        <p class="card-title-text">{{ nomeProduto }}</p>
+        <p class="resultado-card__marca">{{ marcaQuantidade }}</p>
+      </div>
+    </div>
+
+    <!-- Alerta de classificação -->
+    <div class="alerta" [ngClass]="alertaClass">
+      <div class="alerta__bar"></div>
+      <div class="alerta__body">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="alerta__icon"
+        ><use [attr.href]="'/assets/icons.svg#' + alertaIcone" /></svg>
+        <div>
+          <p class="alerta__titulo">{{ alertaTitulo }}</p>
+          <p class="alerta__descricao">{{ alertaDescricao }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aviso sobre a origem da classificação -->
+    <p class="resultado-aviso">
+      Classificação obtida diretamente da base do Open Food Facts (OFF)
+    </p>
+  </main>

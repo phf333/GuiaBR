@@ -1,0 +1,76 @@
+<div class="prato-page">
+  <header class="header">
+    <button class="icon-btn" (click)="voltar()" id="btn-voltar-prato">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/assets/icons.svg#chevron-left" /></svg>
+    </button>
+    <span class="header__title">Minhas Refeições</span>
+    <button class="icon-btn icon-btn--primary" (click)="abrirModal()" id="btn-nova-refeicao">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/assets/icons.svg#plus" /></svg>
+    </button>
+  </header>
+
+  <div class="prato-loading" *ngIf="carregando">
+    <div class="pulse-spinner"></div>
+    <p>Carregando...</p>
+  </div>
+
+  <div class="prato-empty" *ngIf="!carregando && refeicoes.length === 0">
+    <span class="prato-empty__emoji">🥗</span>
+    <p class="prato-empty__title">Nenhuma refeição adicionada</p>
+    <p class="prato-empty__subtitle">Crie sua primeira refeição e avalie se ela segue o Guia Alimentar</p>
+    <button class="prato-empty__cta" (click)="abrirModal()" id="btn-criar-primeira">+ Nova Refeição</button>
+  </div>
+
+  <ul class="prato-list" *ngIf="!carregando && refeicoes.length > 0">
+    <li class="prato-list__item" *ngFor="let r of refeicoes" (click)="router.navigate(['/prato', r.id])"
+      [id]="'refeicao-' + r.id">
+      <div class="prato-list__icon">{{ r.tipo_refeicao | tipoIcone }}</div>
+      <div class="prato-list__info">
+        <p class="prato-list__nome">{{ r.nome_refeicao }}</p>
+        <p class="prato-list__meta">
+          {{ r.tipo_refeicao | tipoLabel }} &nbsp;·&nbsp;
+          {{ r.total_itens }} {{ r.total_itens === 1 ? 'alimento' : 'alimentos' }} &nbsp;·&nbsp;
+          {{ r.data_criacao | formatarData }}
+        </p>
+      </div>
+      <button class="prato-list__delete" (click)="deletarRefeicao($event, r.id)" [id]="'btn-deletar-' + r.id">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><use href="/assets/icons.svg#trash" /></svg>
+      </button>
+    </li>
+  </ul>
+
+  <!-- Modal -->
+  <div class="modal-overlay" *ngIf="mostrarModal" (click)="fecharModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2 class="modal__title">Nova Refeição</h2>
+
+      <div class="field">
+        <label for="nome-refeicao">Nome</label>
+        <input id="nome-refeicao" type="text" [(ngModel)]="novoNome" placeholder="Ex: Almoço de segunda"
+          (keydown.enter)="criarRefeicao()" autofocus />
+      </div>
+
+      <div class="field" style="margin-top:14px">
+        <label>Tipo de refeição</label>
+        <div class="prato-tipos">
+          <button *ngFor="let t of tipos" class="prato-tipos__btn"
+            [class.prato-tipos__btn--active]="novoTipo === t.valor"
+            (click)="novoTipo = t.valor" [id]="'tipo-' + t.valor" type="button">
+            <span class="prato-tipos__icon">{{ t.icone }}</span>
+            <span class="prato-tipos__label">{{ t.label }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="prato-modal__erro" *ngIf="erro">{{ erro }}</div>
+
+      <div class="modal__actions">
+        <button class="modal__btn modal__btn--secondary" (click)="fecharModal()" [disabled]="criando">Cancelar</button>
+        <button class="modal__btn modal__btn--primary modal__btn--wide prato-modal__confirm" (click)="criarRefeicao()" [disabled]="criando" id="btn-confirmar-refeicao">
+          <span *ngIf="!criando">Criar</span>
+          <span *ngIf="criando" class="spinner"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

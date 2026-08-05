@@ -1,0 +1,19 @@
+<div class="modal-overlay" *ngIf="state$ | async as state" (click)="state.tipo === 'alert' ? responder(true) : null">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h2 class="modal__title" *ngIf="state.titulo">{{ state.titulo }}</h2>
+    <p class="modal__message">{{ state.mensagem }}</p>
+
+    <div class="modal__actions">
+      <button
+        *ngIf="state.tipo === 'confirm'"
+        class="modal__btn modal__btn--secondary"
+        (click)="responder(false)"
+      >Cancelar</button>
+      <button
+        class="modal__btn modal__btn--primary"
+        [ngClass]="state.tipo === 'confirm' ? 'modal__btn--wide' : ''"
+        (click)="responder(true)"
+      >{{ state.tipo === 'confirm' ? 'Confirmar' : 'OK' }}</button>
+    </div>
+  </div>
+</div>

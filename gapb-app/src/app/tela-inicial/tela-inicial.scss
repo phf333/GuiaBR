@@ -1,0 +1,150 @@
+@use '../../styles/shared' as shared;
+
+.home-hero {
+  background: var(--background-dark);
+  color: #fff;
+  flex-shrink: 0;
+
+  &__topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    span {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+  }
+
+  &__logout {
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    transition: all 0.2s ease;
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    svg {
+      stroke: #fff;
+    }
+  }
+
+  &__welcome {
+    padding: 0.25rem 1.5rem 2rem;
+    border-radius: 0 0 24px 24px;
+  }
+
+  &__eyebrow {
+    font-size: 0.7rem;
+    letter-spacing: 1.2px;
+    opacity: 0.65;
+    margin-bottom: 0.25rem;
+  }
+
+  &__title {
+    font-size: 1.75rem;
+    font-weight: 700;
+  }
+}
+
+.home-main {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.home-info {
+  padding: 1rem;
+  background: var(--primary-bg);
+  border: 1px solid #d0ebd9;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  font-size: 0.8rem;
+  color: #2d6645;
+  line-height: 1.6;
+  user-select: none;
+  flex-shrink: 0;
+
+  &__icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: rgba(45, 138, 92, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 0.75rem;
+  }
+
+  p {
+    margin: 0;
+    flex: 1;
+  }
+}
+
+.home-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.home-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  box-shadow: shared.$shadow-card;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &__icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__subtitle {
+    font-size: 0.82rem;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

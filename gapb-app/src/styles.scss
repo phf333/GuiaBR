@@ -1,0 +1,513 @@
+:root {
+  --primary-color: #2d8a5c;
+  --primary-hover: #1a6644;
+  --primary-bg: #e8f5ee;
+  --red-color: #c0392b;
+  --red-light: #fdecea;
+  --red-stroke: #d94f3d;
+  --yellow-color: #e89020;
+  --orange-color: #d35400;
+  --background-dark: #1e5c3a;
+  --gray-color: #aaa;
+
+  --text-dark: #1a3d2b;
+  --text-black: #1a1a1a;
+  --text-muted: #8aaa96;
+  --text-label: #3a5a46;
+  --border-light: #d0e6d9;
+  --bg-input: #f7fbf9;
+  --placeholder-color: #a8c4b3;
+  --icon-btn-bg: #ebebdf;
+  --icon-stroke: #555;
+  --text-faint: #9a9a8a;
+  --icon-faint: #ccc;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* O Tailwind Preflight (@tailwind base) fazia isso por baixo dos panos; sem ele,
+   button/input/select/textarea voltam ao estilo padrão do navegador (cor própria,
+   não herdada), o que quebra qualquer ícone com stroke="currentColor" dentro de
+   um botão colorido (ex.: botão de logout no header verde). */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  cursor: pointer;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: fixed;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Botões Padrão */
+.btn-primary {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(to bottom right, var(--primary-color), var(--primary-hover));
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 1rem;
+  box-shadow: 0 4px 16px rgba(45, 138, 92, 0.3);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+/* Formulários */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+
+  label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-label);
+    letter-spacing: 0.025em;
+  }
+
+  input,
+  select {
+    border: 1.5px solid var(--border-light);
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    background: var(--bg-input);
+    transition: all 0.2s ease;
+    outline: none;
+
+    &::placeholder {
+      color: var(--placeholder-color);
+    }
+
+    &:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 4px rgba(45, 138, 92, 0.1);
+      background: #fff;
+    }
+  }
+}
+
+/* Spinner & Animação */
+.spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  &--dark {
+    border-width: 2px;
+    border-color: rgba(45, 138, 92, 0.2);
+    border-top-color: var(--primary-color);
+  }
+}
+
+/* Círculo de loading pulsante (telas de prato e prato-detalhe) */
+.pulse-spinner {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: rgba(45, 138, 92, 0.2);
+  animation: escanear-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Modal Overlay & Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+
+  @media (min-width: 640px) {
+    align-items: center;
+  }
+}
+
+.modal {
+  background: #fff;
+  border-radius: 1.5rem 1.5rem 0 0;
+  padding: 1.5rem 1.5rem 2.5rem;
+  width: 100%;
+  max-width: 460px;
+  animation: slideUp 0.25s ease;
+
+  @media (min-width: 640px) {
+    border-radius: 1.5rem;
+    padding: 2rem;
+  }
+
+  &__title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 1.25rem;
+  }
+
+  &__message {
+    font-size: 0.95rem;
+    color: var(--text-label);
+    line-height: 1.625;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.625rem;
+    margin-top: 1.25rem;
+  }
+}
+
+.modal__btn {
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 0.75rem;
+  flex: 1;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &--secondary {
+    background: #f0f4f1;
+    color: #4a6655;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &--primary {
+    background: linear-gradient(to bottom right, var(--primary-color), var(--primary-hover));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+
+  &--wide {
+    flex: 2;
+  }
+}
+
+/* Layout base usado no :host de varias telas roteadas (substitui o antigo
+   host: { class: 'flex flex-col flex-1 min-h-0 w-full' } do Tailwind) */
+.page-fill {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+
+  &--relative {
+    position: relative;
+  }
+}
+
+/* Tela de login/registro (compartilhada por LoginComponent e RegistroComponent) */
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom right, #f0faf5, #e8f5ee, #d4eddf);
+  padding: 1.5rem;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 8px 40px rgba(45, 138, 92, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+
+  &__title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    letter-spacing: -0.025em;
+    margin: 0;
+  }
+
+  &__subtitle {
+    font-size: 0.875rem;
+    color: #6b8f7a;
+    margin: 0 0 1rem;
+  }
+
+  &__footer {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b8f7a;
+
+    a {
+      color: var(--primary-color);
+      font-weight: 600;
+      text-decoration: none;
+    }
+  }
+}
+
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* Mensagem de erro de formulário */
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: var(--red-light);
+  border: 1px solid #f5c6c6;
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--red-color);
+  margin-top: -0.25rem;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+/* Cabeçalhos */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  flex-shrink: 0;
+  user-select: none;
+
+  &__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-black);
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-black);
+    line-height: 1.25;
+  }
+}
+
+/* Botões de Ícones */
+.icon-btn {
+  background: var(--icon-btn-bg);
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    stroke: var(--icon-stroke);
+  }
+
+  &--ghost {
+    visibility: hidden;
+  }
+}
+
+/* Cartões e listas (usado por tela-inicial, escanear, resultado-escaneamento) */
+.section-label {
+  font-size: 0.7rem;
+  letter-spacing: 1.4px;
+  font-weight: 600;
+  color: var(--text-faint);
+  margin-bottom: 0.75rem;
+}
+
+.card-title-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-black);
+  margin-bottom: 0.125rem;
+}
+
+.chevron-icon {
+  width: 1rem;
+  height: 1rem;
+  stroke: var(--icon-faint);
+  flex-shrink: 0;
+}
+
+/* Ícones em máscara (SVG recolorível via background-color) */
+.icon-nav {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: #bbb; // Cor padrão (cinza)
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  transition: background-color 0.2s;
+}
+
+.icon-home {
+  mask-image: url('/assets/home.svg');
+  -webkit-mask-image: url('/assets/home.svg');
+}
+
+.icon-camera {
+  mask-image: url('/assets/camera.svg');
+  -webkit-mask-image: url('/assets/camera.svg');
+}
+
+.icon-prato {
+  mask-image: url('/assets/refeicoes.svg');
+  -webkit-mask-image: url('/assets/refeicoes.svg');
+}
+
+/* Lista de tags (classificação/sazonalidade) — a cor vem das classes semânticas abaixo via ngClass */
+.tag-list {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tag-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Classes Semânticas */
+.guia-in-natura {
+  color: var(--primary-color);
+}
+.guia-ingrediente-culinario {
+  color: var(--yellow-color);
+}
+.guia-processado {
+  color: var(--orange-color);
+}
+.guia-ultraprocessado {
+  color: var(--red-color);
+}
+
+.safra-alta {
+  color: var(--primary-color);
+}
+.safra-media {
+  color: var(--yellow-color);
+}
+.safra-baixa {
+  color: var(--orange-color);
+}
+.safra-fora {
+  color: var(--gray-color);
+}
+
+.classificacao-verde {
+  background: var(--primary-color);
+}
+.classificacao-amarelo {
+  background: var(--yellow-color);
+}
+.classificacao-vermelho {
+  background: var(--red-color);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Usada por .pulse-spinner acima e pelo overlay de carregamento em pag-escaneamento.
+@keyframes escanear-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
