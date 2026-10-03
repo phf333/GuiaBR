@@ -67,7 +67,7 @@ _Isso criará o banco Postgres, subirá o backend Flask em produção na porta 5
 
 _O `data/sazonalidade_consolidada_produtos.csv` não é gerado automaticamente — se ele estiver ausente ou desatualizado (nova planilha da CEAGESP), gere-o **antes** do `docker compose up --build` seguindo os passos em [README.md](../README.md#como-executar-desenvolvimento-local), já que o arquivo é copiado pra dentro da imagem no build._
 
-Na primeira execução, é necessário rodar o seed para criar as tabelas no PostgreSQL, importar a sazonalidade dos alimentos e cadastrar os alimentos básicos do Guia Alimentar:
+Na primeira execução, é necessário rodar o seed para criar as tabelas no PostgreSQL (pelas migrações), importar a sazonalidade dos alimentos e cadastrar os alimentos básicos do Guia Alimentar:
 
 ```bash
 docker compose exec backend python scripts/seed.py
@@ -126,6 +126,24 @@ docker compose up -d --build
   docker compose build backend
   docker compose up -d backend
   ```
+
+---
+
+### 3. Aplicar migrações do banco
+
+Quando a atualização trouxer mudanças no banco (arquivos novos em `backend/migrations/versions/`), aplique-as depois de recriar o backend:
+
+```bash
+docker compose exec backend flask db upgrade
+```
+
+Se o banco deste ambiente foi criado antes de existirem migrações, rode uma única vez, antes do `upgrade`:
+
+```bash
+docker compose exec backend flask db stamp 0001
+```
+
+_Detalhes em [README.md](../README.md#migrações-do-banco)._
 
 ---
 

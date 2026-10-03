@@ -1,7 +1,8 @@
 """
 seed.py
 -------
-Cria as tabelas e carrega os alimentos de referência do app, a partir de dois CSVs em data/:
+Cria ou atualiza as tabelas (migrações) e carrega os alimentos de referência do app, a partir
+de dois CSVs em data/:
 
   1. sazonalidade_consolidada_produtos.csv — hortifrutigranjeiros e pescados da CEAGESP,
      com a safra de cada mês. Gerado por xlsx_to_csv.py. Entram como 'in natura'.
@@ -28,7 +29,8 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from sqlalchemy import text
+from flask_migrate import upgrade
+from sqlalchemy import inspect, text
 from app import create_app
 from app.models import db, Alimento, Sazonalidade
 
@@ -107,13 +109,25 @@ def limpar_alimentos():
     print("Alimentos, sazonalidade, itens de refeição e histórico do scanner apagados.")
 
 
+def preparar_schema():
+    """Cria ou atualiza as tabelas pelas migrações (o mesmo que `flask db upgrade`)."""
+    inspetor = inspect(db.engine)
+    if inspetor.has_table('alimentos') and not inspetor.has_table('alembic_version'):
+        sys.exit(
+            "Erro: este banco foi criado antes das migrações.\n"
+            "Rode uma vez `python -m flask db stamp 0001` e depois o seed de novo "
+            "(veja a seção de migrações no README)."
+        )
+    upgrade(directory=os.path.join(os.path.dirname(__file__), '..', 'migrations'))
+
+
 def seed(reset=False):
     for caminho in (CSV_SAZONALIDADE, CSV_BASICOS):
         if not os.path.exists(caminho):
             sys.exit(f"Erro: arquivo não encontrado: {caminho}")
 
     with create_app().app_context():
-        db.create_all()
+        preparar_schema()
         if reset:
             limpar_alimentos()
         carregar_sazonalidade()

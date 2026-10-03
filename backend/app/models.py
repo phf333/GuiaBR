@@ -60,10 +60,14 @@ class Alimento(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     grupo = db.Column(db.String(50))
     classificacao_guia = db.Column(db.String(50), default='indisponivel')
-    codigo_barras = db.Column(db.String(50), nullable=True, unique=True)
+    codigo_barras = db.Column(db.String(50), nullable=True)
     dados_completos = db.Column(db.JSON, nullable=True)
 
     safras = db.relationship('Sazonalidade', backref='alimento', cascade='all, delete-orphan')
+
+    __table_args__ = (
+        db.UniqueConstraint('codigo_barras', name='uq_alimentos_codigo_barras'),
+    )
 
     @property
     def sazonalidade_atual(self) -> dict | None:

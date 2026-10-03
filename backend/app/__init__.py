@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from app.config import Config
-from app.extensions import limiter
+from app.extensions import limiter, migrate
 from app.models import db
 
 def create_app(config_object=Config):
@@ -27,6 +27,7 @@ def create_app(config_object=Config):
     CORS(app, origins=origins)
 
     db.init_app(app)
+    migrate.init_app(app, db)
     JWTManager(app)
     limiter.init_app(app)
 
