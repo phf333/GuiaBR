@@ -3,9 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ZXingScannerModule } from '@zxing/ngx-scanner';
 import { BarcodeFormat } from '@zxing/library';
-import { ApiService } from '../core/api.service';
-import { LocalDbService } from '../core/local-db.service';
 import { DialogService } from '../core/dialog.service';
+import { HistoricoService } from './historico.service';
 import { ClassificacaoNovaPipe } from '../shared/pipes/shared-pipes';
 import { ProdutoEscaneado } from '../shared/models';
 import { NavHeaderComponent } from '../shared/components/nav-header/nav-header';
@@ -20,9 +19,8 @@ import { NavHeaderComponent } from '../shared/components/nav-header/nav-header';
 })
 export class EscanearComponent implements OnInit {
   constructor(
-    private api: ApiService,
+    private historico: HistoricoService,
     private router: Router,
-    private localDb: LocalDbService,
     private dialog: DialogService,
   ) { }
 
@@ -30,38 +28,12 @@ export class EscanearComponent implements OnInit {
   carregandoDetalhes = false;
   allowedFormats = [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A];
 
-  ultimosEscaneados: ProdutoEscaneado[] = [];
-
-  ngOnInit() {
-    const cached = localStorage.getItem('guiabr_historico_scanner');
-    if (cached) {
-      try {
-        this.ultimosEscaneados = JSON.parse(cached);
-      } catch (e) {
-        console.error('Erro ao ler histórico do cache local:', e);
-      }
-    }
-    this.carregarHistorico();
+  get ultimosEscaneados(): ProdutoEscaneado[] {
+    return this.historico.historico$.value;
   }
 
-  carregarHistorico() {
-    this.api.get<ProdutoEscaneado[]>('/api/alimentos/historico').subscribe({
-      next: (historico) => {
-        this.ultimosEscaneados = historico ?? [];
-        localStorage.setItem('guiabr_historico_scanner', JSON.stringify(this.ultimosEscaneados));
-      },
-      error: (err) => {
-        console.warn('Erro ao carregar histórico do backend, lendo do cache local:', err);
-        const cached = localStorage.getItem('guiabr_historico_scanner');
-        if (cached) {
-          try {
-            this.ultimosEscaneados = JSON.parse(cached);
-          } catch (e) {
-            console.error('Erro ao fazer parse do histórico cacheado:', e);
-          }
-        }
-      }
-    });
+  ngOnInit() {
+    this.historico.carregar();
   }
 
   onClick() {
@@ -98,15 +70,9 @@ export class EscanearComponent implements OnInit {
     this.showScanner = false;
     this.carregandoDetalhes = true;
 
-    this.api.get<ProdutoEscaneado>('/api/alimentos/busca', { codigo: barcode }).subscribe({
+    this.historico.buscar(barcode).subscribe({
       next: (produto) => {
         this.carregandoDetalhes = false;
-        this.ultimosEscaneados = [
-          produto,
-          ...this.ultimosEscaneados.filter(h => h.codigo_barras !== produto.codigo_barras),
-        ].slice(0, 20);
-        localStorage.setItem('guiabr_historico_scanner', JSON.stringify(this.ultimosEscaneados));
-
         this.verResultado(produto);
       },
       error: (err) => {
@@ -129,22 +95,9 @@ export class EscanearComponent implements OnInit {
     event.stopPropagation();
     if (!(await this.dialog.confirm('Deseja realmente remover este item do histórico?'))) return;
 
-    this.ultimosEscaneados = this.ultimosEscaneados.filter(h => h.codigo_barras !== item.codigo_barras);
-    localStorage.setItem('guiabr_historico_scanner', JSON.stringify(this.ultimosEscaneados));
-
-    if (navigator.onLine) {
-      this.api.delete(`/api/alimentos/historico/${item.codigo_barras}`).subscribe({
-        next: () => {
-          console.log('Item removido do histórico no backend.');
-        },
-        error: (err) => {
-          console.error('Erro ao excluir item do histórico no backend:', err);
-        }
-      });
-    } else {
-      this.localDb.addToSyncQueue('deletar_historico', { barcode: item.codigo_barras })
-        .then(() => console.log('Exclusão de histórico enfileirada offline.'));
-    }
+    this.historico.excluir(item.codigo_barras).subscribe({
+      error: (err) => console.error('Erro ao excluir item do histórico:', err),
+    });
   }
 
   voltar() {

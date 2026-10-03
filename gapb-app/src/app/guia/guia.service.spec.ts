@@ -10,16 +10,18 @@ describe('GuiaService', () => {
   let localDbSpy: jasmine.SpyObj<LocalDbService>;
   let authMock: { usuarioAtual$: BehaviorSubject<any>; limpezaLocal: Promise<void> };
 
-  const STORAGE_KEY = 'guiabr_guia_progresso';
+  const CHAVE_CACHE = 'progresso_guia';
   const ULTIMO_CARD_KEY = 'guiabr_guia_ultimo_card';
 
   beforeEach(() => {
     localStorage.clear();
     apiSpy = jasmine.createSpyObj('ApiService', ['get', 'post', 'patch', 'delete']);
-    localDbSpy = jasmine.createSpyObj('LocalDbService', ['getSyncQueue', 'addToSyncQueue', 'removeFromSyncQueue']);
+    localDbSpy = jasmine.createSpyObj('LocalDbService', ['getSyncQueue', 'addToSyncQueue', 'removeFromSyncQueue', 'getCache', 'setCache']);
     localDbSpy.getSyncQueue.and.resolveTo([]);
     localDbSpy.addToSyncQueue.and.resolveTo();
     localDbSpy.removeFromSyncQueue.and.resolveTo();
+    localDbSpy.getCache.and.resolveTo(null);
+    localDbSpy.setCache.and.resolveTo();
     authMock = {
       usuarioAtual$: new BehaviorSubject<any>({ id: 1, nome: 'Ana', email: 'ana@x.com' }),
       limpezaLocal: Promise.resolve(),
@@ -48,13 +50,11 @@ describe('GuiaService', () => {
       const capitulos = service.capitulosAtuais;
       expect(capitulos.length).toBe(CAPITULOS_DEFAULT.length);
       expect(capitulos.find((c) => c.numero === 1)!.status).toBe('done');
-      expect(localStorage.getItem(STORAGE_KEY)).toBe(
-        JSON.stringify([{ numero: 1, status: 'done' }]),
-      );
+      expect(localDbSpy.setCache).toHaveBeenCalledWith(CHAVE_CACHE, [{ numero: 1, status: 'done' }]);
     });
 
     it('deve usar o backup local quando o backend falha', async () => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([{ numero: 2, status: 'done' }]));
+      localDbSpy.getCache.and.resolveTo([{ numero: 2, status: 'done' }]);
       const service = await criar(throwError(() => new Error('offline')));
 
       expect(service.capitulosAtuais.find((c) => c.numero === 2)!.status).toBe('done');
@@ -120,10 +120,12 @@ describe('GuiaService', () => {
       apiSpy.post.and.returnValue(throwError(() => new Error('offline')));
 
       service.concluirCapitulo(1);
+      await flush();
 
       expect(service.capitulosAtuais.find((c) => c.numero === 1)!.status).toBe('done');
-      const salvo = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
-      expect(salvo.find((c: Capitulo) => c.numero === 1).status).toBe('done');
+      const [chave, salvo] = localDbSpy.setCache.calls.mostRecent().args as [string, Capitulo[]];
+      expect(chave).toBe(CHAVE_CACHE);
+      expect(salvo.find((c) => c.numero === 1)!.status).toBe('done');
       expect(localDbSpy.addToSyncQueue).toHaveBeenCalledWith('concluir_capitulo', { numero: 1 });
     });
 
@@ -132,6 +134,7 @@ describe('GuiaService', () => {
       const service = await criar();
 
       service.concluirCapitulo(1);
+      await flush();
 
       expect(apiSpy.post).not.toHaveBeenCalled();
       expect(service.capitulosAtuais.find((c) => c.numero === 1)!.status).toBe('done');
@@ -143,6 +146,7 @@ describe('GuiaService', () => {
       apiSpy.post.and.returnValue(throwError(() => new Error('offline')));
 
       service.concluirCapitulo(1);
+      await flush();
 
       expect(localDbSpy.addToSyncQueue).not.toHaveBeenCalled();
     });
@@ -164,6 +168,7 @@ describe('GuiaService', () => {
       apiSpy.post.and.returnValue(throwError(() => new Error('offline')));
 
       service.resetarProgresso();
+      await flush();
 
       expect(service.capitulosAtuais.every((c) => c.status === 'active')).toBeTrue();
       expect(localDbSpy.addToSyncQueue).toHaveBeenCalledWith('resetar_progresso', {});
@@ -174,7 +179,7 @@ describe('GuiaService', () => {
       apiSpy.post.and.returnValue(throwError(() => new Error('offline')));
       localDbSpy.getSyncQueue.and.resolveTo([
         { id: 5, action: 'concluir_capitulo', payload: { numero: 1 }, timestamp: 1 },
-        { id: 6, action: 'adicionar_item', payload: {}, timestamp: 1 },
+        { id: 6, action: 'adicionar_item', payload: { refeicaoId: 1, alimentoId: 2 }, timestamp: 1 },
       ]);
 
       service.resetarProgresso();

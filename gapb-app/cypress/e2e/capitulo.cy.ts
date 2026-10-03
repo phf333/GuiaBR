@@ -60,6 +60,10 @@ describe('Capitulo do Guia (/guia/capitulo)', () => {
     cy.contains('p', 'A Escolha dos Alimentos').click();
     cy.url().should('include', '/guia/capitulo');
 
+    // Ao abrir, o componente reposiciona o carrossel apos 50ms (ngAfterViewInit); rolar antes
+    // disso e desfeito por esse ajuste. Um usuario real nunca rola tao cedo.
+    cy.wait(100);
+
     // Simula o usuario rolando o carrossel ate o ultimo card de fundamento,
     // que é o gatilho real (onScroll) para marcar o capitulo como concluido.
     cy.get('.card-conteudo--fundamento').then(($cards) => {
