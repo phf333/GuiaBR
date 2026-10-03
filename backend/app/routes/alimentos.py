@@ -1,9 +1,10 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
+import re
 import requests
-from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload, selectinload
-from app.models import db, Alimento, HistoricoScanner, Sazonalidade
+from app.models import db, Alimento, HistoricoScanner, Sazonalidade, mes_atual
 
 alimentos_bp = Blueprint('alimentos', __name__)
 
@@ -68,6 +69,10 @@ def buscar_alimento():
     usuario_id = int(get_jwt_identity())
 
     if codigo:
+        # O código entra na URL do Open Food Facts; só dígitos (EAN/UPC têm até 14).
+        if not re.fullmatch(r'[0-9]{1,14}', codigo):
+            return jsonify({"error": "Código de barras inválido"}), 400
+
         alimento = Alimento.query.filter_by(codigo_barras=codigo).first()
         
         if alimento and alimento.dados_completos:
@@ -115,19 +120,23 @@ def buscar_alimento():
                 )
                 db.session.add(alimento)
             
-            db.session.commit()
- 
-            if historico_param:
+            try:
+                db.session.commit()
+            except IntegrityError:
+                # Outra requisição cadastrou o mesmo código de barras ao mesmo tempo.
+                db.session.rollback()
+                alimento = Alimento.query.filter_by(codigo_barras=codigo).first()
+
+            if historico_param and alimento:
                 _registrar_historico(usuario_id, alimento.id)
 
             return jsonify(data)
-            
-        except requests.exceptions.RequestException as e:
-            return jsonify({"error": f"Erro de rede ao conectar à API do OFF: {str(e)}"}), 500
+
+        except requests.exceptions.RequestException:
+            current_app.logger.exception("Erro de rede ao consultar o Open Food Facts")
+            return jsonify({"error": "Erro de rede ao conectar à API do Open Food Facts"}), 500
 
     elif query:
-        mes_atual = datetime.now().month
-
         q = Alimento.query.options(selectinload(Alimento.safras)).filter(
             Alimento.nome.ilike(f"%{query}%"),
             Alimento.codigo_barras.is_(None)
@@ -135,7 +144,7 @@ def buscar_alimento():
 
         if so_safra:
             q = q.join(Sazonalidade, Alimento.id == Sazonalidade.alimento_id)\
-                 .filter(Sazonalidade.mes == mes_atual, Sazonalidade.safra_atual >= 3)
+                 .filter(Sazonalidade.mes == mes_atual(), Sazonalidade.safra_atual >= 3)
 
         alimentos = q.limit(50).all()
         return jsonify([_serializar_alimento(al) for al in alimentos])

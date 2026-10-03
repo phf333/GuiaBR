@@ -280,4 +280,23 @@ describe('LocalDbService', () => {
       expect(del).toHaveBeenCalledWith(1);
     });
   });
+
+  describe('clearUserData', () => {
+    it('deve apagar refeicoes e fila, preservando a base de alimentos', async () => {
+      const clearRefeicoes = jasmine.createSpy('clearRefeicoes').and.resolveTo();
+      const clearFila = jasmine.createSpy('clearFila').and.resolveTo();
+      const clearAlimentos = jasmine.createSpy('clearAlimentos').and.resolveTo();
+      (service as any).db = {
+        refeicoes: { clear: clearRefeicoes },
+        sync_queue: { clear: clearFila },
+        alimentos: { clear: clearAlimentos },
+      };
+
+      await service.clearUserData();
+
+      expect(clearRefeicoes).toHaveBeenCalled();
+      expect(clearFila).toHaveBeenCalled();
+      expect(clearAlimentos).not.toHaveBeenCalled();
+    });
+  });
 });

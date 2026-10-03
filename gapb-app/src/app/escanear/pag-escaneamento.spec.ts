@@ -191,6 +191,31 @@ describe('EscanearComponent', () => {
       expect(component.ultimosEscaneados[0].imageUrl).toBeUndefined();
     });
 
+    it('deve navegar mesmo quando o localStorage nao aceita o produto', () => {
+      const res = { product: { product_name: 'Bolacha' } };
+      apiSpy.get.and.returnValue(of(res));
+      const setItemOriginal = localStorage.setItem.bind(localStorage);
+      spyOn(localStorage, 'setItem').and.callFake((chave: string, valor: string) => {
+        if (chave.startsWith('guiabr_produto_')) throw new Error('QuotaExceededError');
+        setItemOriginal(chave, valor);
+      });
+      spyOn(console, 'warn');
+
+      component.handleScanSuccess(BARCODE_VALIDO);
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/resultado'], { state: { produto: res } });
+    });
+
+    it('deve remover do cache os produtos que nao estao mais no historico', () => {
+      localStorage.setItem('guiabr_produto_111', '{}');
+      apiSpy.get.and.returnValue(of({ product: { product_name: 'Bolacha' } }));
+
+      component.handleScanSuccess(BARCODE_VALIDO);
+
+      expect(localStorage.getItem('guiabr_produto_111')).toBeNull();
+      expect(localStorage.getItem(`guiabr_produto_${BARCODE_VALIDO}`)).not.toBeNull();
+    });
+
     it('deve substituir uma entrada existente do mesmo barcode no historico', () => {
       component.ultimosEscaneados = [
         { nome: 'Antigo', label: 'l', tipo: 'saudavel', barcode: BARCODE_VALIDO, dados: null },

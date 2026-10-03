@@ -47,6 +47,8 @@ export class SyncProcessorService implements OnDestroy {
 
   async processQueue(): Promise<void> {
     if (this.syncing) return;
+    // Se outro usuário acabou de logar, espera a fila do anterior ser apagada antes de ler.
+    await this.auth.limpezaLocal;
     const queue = await this.localDb.getSyncQueue();
     if (queue.length === 0) return;
 

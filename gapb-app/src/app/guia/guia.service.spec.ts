@@ -1,12 +1,14 @@
-import { of, throwError } from 'rxjs';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 import { GuiaService, Capitulo } from './guia.service';
 import { ApiService } from '../core/api.service';
 import { LocalDbService } from '../core/local-db.service';
+import { AuthService } from '../core/auth.service';
 import { CAPITULOS_DEFAULT } from './data/capitulos.data';
 
 describe('GuiaService', () => {
   let apiSpy: jasmine.SpyObj<ApiService>;
   let localDbSpy: jasmine.SpyObj<LocalDbService>;
+  let authMock: { usuarioAtual$: BehaviorSubject<any>; limpezaLocal: Promise<void> };
 
   const STORAGE_KEY = 'guiabr_guia_progresso';
   const ULTIMO_CARD_KEY = 'guiabr_guia_ultimo_card';
@@ -18,6 +20,10 @@ describe('GuiaService', () => {
     localDbSpy.getSyncQueue.and.resolveTo([]);
     localDbSpy.addToSyncQueue.and.resolveTo();
     localDbSpy.removeFromSyncQueue.and.resolveTo();
+    authMock = {
+      usuarioAtual$: new BehaviorSubject<any>({ id: 1, nome: 'Ana', email: 'ana@x.com' }),
+      limpezaLocal: Promise.resolve(),
+    };
   });
 
   afterEach(() => localStorage.clear());
@@ -30,7 +36,7 @@ describe('GuiaService', () => {
   /** Cria o serviço já com o retorno de /api/capitulos configurado no construtor. */
   async function criar(getProgresso = of([] as any[])): Promise<GuiaService> {
     apiSpy.get.and.returnValue(getProgresso);
-    const service = new GuiaService(apiSpy, localDbSpy);
+    const service = new GuiaService(apiSpy, localDbSpy, authMock as unknown as AuthService);
     await flush();
     return service;
   }
@@ -70,6 +76,30 @@ describe('GuiaService', () => {
       const service = await criar(of([{ numero: 1, status: 'active' }]));
 
       expect(service.capitulosAtuais.find((c) => c.numero === 1)!.status).toBe('done');
+    });
+  });
+
+  describe('troca de usuario', () => {
+    it('deve esvaziar os capitulos no logout e recarregar quando outro usuario loga', async () => {
+      const service = await criar(of([{ numero: 1, status: 'done' }]));
+      expect(service.capitulosAtuais.find((c) => c.numero === 1)!.status).toBe('done');
+
+      authMock.usuarioAtual$.next(null);
+      expect(service.capitulosAtuais).toEqual([]);
+
+      apiSpy.get.and.returnValue(of([{ numero: 1, status: 'active' }]));
+      authMock.usuarioAtual$.next({ id: 2, nome: 'Bia', email: 'bia@x.com' });
+      await flush();
+
+      expect(service.capitulosAtuais.find((c) => c.numero === 1)!.status).toBe('active');
+    });
+
+    it('nao deve carregar o progresso sem usuario logado', async () => {
+      authMock.usuarioAtual$.next(null);
+      const service = await criar();
+
+      expect(apiSpy.get).not.toHaveBeenCalled();
+      expect(service.capitulosAtuais).toEqual([]);
     });
   });
 

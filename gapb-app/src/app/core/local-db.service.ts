@@ -122,4 +122,10 @@ export class LocalDbService {
   async removeFromSyncQueue(id: number): Promise<void> {
     await this.db.sync_queue.delete(id);
   }
+
+  // --- DADOS DO USUÁRIO ---
+  /** Apaga o que pertence ao usuário (refeições e fila); a base de alimentos é comum a todos e fica. */
+  async clearUserData(): Promise<void> {
+    await Promise.all([this.db.refeicoes.clear(), this.db.sync_queue.clear()]);
+  }
 }

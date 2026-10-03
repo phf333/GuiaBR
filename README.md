@@ -30,7 +30,7 @@ npm install
 ng serve --host 0.0.0.0 --ssl true --ssl-cert ./certificados/192.168.1.233.pem --ssl-key ./certificados/192.168.1.233-key.pem
 ```
 
-_Notas: (1) `data/sazonalidade_consolidada_produtos.csv` não é gerado automaticamente — se estiver ausente/desatualizado, rode `python scripts/xlsx_to_csv.py` antes do seed. (2) `gapb-app/certificados/` é ignorado pelo git (chaves privadas) — um clone novo não vem com os certificados; gere um autoassinado antes do `ng serve` (veja [docs/README-deploy.md](docs/README-deploy.md)). (3) HTTPS é obrigatório para o navegador liberar a câmera._
+_Notas: (1) `data/sazonalidade_consolidada_produtos.csv` não é gerado automaticamente — se estiver ausente/desatualizado, rode `python scripts/xlsx_to_csv.py` antes do seed. (2) `gapb-app/certificados/` é ignorado pelo git (chaves privadas) — um clone novo não vem com os certificados; gere um autoassinado antes do `ng serve` (veja [docs/README-deploy.md](docs/README-deploy.md)). (3) HTTPS é obrigatório para o navegador liberar a câmera. (4) `python run.py` sobe sem o depurador do Flask; para ligar depurador e recarga automática, defina `FLASK_DEBUG=1` antes de rodar._
 
 Para subir a stack completa via Docker e expor publicamente com Ngrok, veja **[docs/README-deploy.md](docs/README-deploy.md)**.
 
@@ -38,6 +38,7 @@ Para subir a stack completa via Docker e expor publicamente com Ngrok, veja **[d
 
 ```bash
 pytest --cov=app --cov-report=term-missing   # backend, a partir de backend/
-npm run test:headless                        # frontend unitário, a partir de gapb-app/
+npm run test:headless                        # frontend unitário (Windows + Edge), a partir de gapb-app/
+npm run test:ci                              # frontend unitário (Linux/Mac/CI, usa o Chrome instalado)
 npm run e2e:run                               # frontend E2E, a partir de gapb-app/
 ```

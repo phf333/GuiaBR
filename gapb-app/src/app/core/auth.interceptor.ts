@@ -15,7 +15,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((err: HttpErrorResponse) => {
       if (err.status === 401 && auth.isLoggedIn) {
         console.warn('Sessão expirada. Efetuando logout.');
-        auth.logout();
+        auth.logout(true);
       }
       return throwError(() => err);
     })

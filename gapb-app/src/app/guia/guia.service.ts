@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, map } from 'rxjs';
 import { CAPITULOS_DEFAULT } from './data/capitulos.data';
 import { ApiService } from '../core/api.service';
+import { AuthService } from '../core/auth.service';
 import { LocalDbService } from '../core/local-db.service';
 
 export interface Capitulo {
@@ -30,8 +31,17 @@ export class GuiaService {
   private capitulosSubject = new BehaviorSubject<Capitulo[]>([]);
   capitulos$ = this.capitulosSubject.asObservable();
 
-  constructor(private api: ApiService, private localDb: LocalDbService) {
-    this.carregarProgresso();
+  constructor(private api: ApiService, private localDb: LocalDbService, private auth: AuthService) {
+    // Recarrega a cada troca de usuário: o serviço é singleton e sobrevive ao logout.
+    this.auth.usuarioAtual$
+      .pipe(map(usuario => usuario?.id ?? null), distinctUntilChanged())
+      .subscribe(usuarioId => {
+        if (usuarioId === null) {
+          this.capitulosSubject.next([]);
+        } else {
+          this.carregarProgresso();
+        }
+      });
   }
 
   get capitulosAtuais(): Capitulo[] {
@@ -39,6 +49,7 @@ export class GuiaService {
   }
 
   private async carregarProgresso() {
+    await this.auth.limpezaLocal;
     // Capítulos concluídos offline que ainda não foram sincronizados com o backend
     // não podem ser perdidos quando o progresso do servidor for recarregado.
     const pendentes = await this.getCapitulosPendentesDeSync();

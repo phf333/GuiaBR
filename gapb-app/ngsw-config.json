@@ -39,18 +39,6 @@
         "maxSize": 200,
         "maxAge": "30d"
       }
-    },
-    {
-      "name": "api-freshness",
-      "urls": [
-        "/api/**"
-      ],
-      "cacheConfig": {
-        "strategy": "freshness",
-        "maxSize": 100,
-        "maxAge": "1d",
-        "timeout": "5s"
-      }
     }
   ]
 }

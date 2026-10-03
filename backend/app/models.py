@@ -1,7 +1,38 @@
+from datetime import datetime, timedelta, timezone
+
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
+
+# O Brasil não tem horário de verão desde 2019; o offset fixo evita depender de tzdata na imagem.
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
+
+
+def mes_atual() -> int:
+    """Mês corrente no horário de Brasília (o servidor roda em UTC)."""
+    return datetime.now(FUSO_BRASILIA).month
+
+
+# Produtos do CSV da CEAGESP cujo grupo comercial não corresponde ao grupo alimentar do Guia.
+CATEGORIA_GUIA_POR_NOME = {
+    'BATATA': 'cereal_tuberculo',
+    'BATATA-DOCE': 'cereal_tuberculo',
+    'CARÁ': 'cereal_tuberculo',
+    'INHAME': 'cereal_tuberculo',
+    'MANDIOCA': 'cereal_tuberculo',
+    'MANDIOQUINHA': 'cereal_tuberculo',
+    'MILHO VERDE': 'cereal_tuberculo',
+    'MILHO DE PIPOCA': 'cereal_tuberculo',
+    'ERVILHA': 'leguminosa',
+    'FEIJÃO-DE-CORDA': 'leguminosa',
+    'AMENDOIM': 'oleaginosa',
+    'AMÊNDOA': 'oleaginosa',
+    'AVELÃ': 'oleaginosa',
+    'CASTANHA': 'oleaginosa',
+    'NOZES': 'oleaginosa',
+    'OVOS': 'proteina',
+}
 
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
@@ -29,7 +60,7 @@ class Alimento(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     grupo = db.Column(db.String(50))
     classificacao_guia = db.Column(db.String(50), default='indisponivel')
-    codigo_barras = db.Column(db.String(50), nullable=True)
+    codigo_barras = db.Column(db.String(50), nullable=True, unique=True)
     dados_completos = db.Column(db.JSON, nullable=True)
 
     safras = db.relationship('Sazonalidade', backref='alimento', cascade='all, delete-orphan')
@@ -37,10 +68,9 @@ class Alimento(db.Model):
     @property
     def sazonalidade_atual(self) -> dict | None:
         """Retorna o dado de sazonalidade do mês atual, se existir."""
-        from datetime import datetime
-        mes_atual = datetime.now().month
+        mes = mes_atual()
         for safra in self.safras:
-            if safra.mes == mes_atual:
+            if safra.mes == mes:
                 valor = safra.safra_atual
                 nivel = 'alta' if valor == 4 else ('media' if valor >= 2 else ('baixa' if valor == 1 else 'fora'))
                 mapa_safra_texto = {
@@ -64,6 +94,9 @@ class Alimento(db.Model):
         classe = (self.classificacao_guia or '').lower()
         if classe == 'ultraprocessado':
             return 'ultraprocessado'
+        por_nome = CATEGORIA_GUIA_POR_NOME.get((self.nome or '').strip().upper())
+        if por_nome:
+            return por_nome
         if grupo == 'FRUTAS':
             return 'fruta'
         if grupo in {'CEREAIS', 'TUBERCULOS'}:

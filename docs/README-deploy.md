@@ -65,7 +65,7 @@ _Isso criará o banco Postgres, subirá o backend Flask em produção na porta 5
 
 ### 2. Criar e Popular o Banco de Dados (Seed)
 
-_O `data/sazonalidade_consolidada_produtos.csv` não é gerado automaticamente — se ele estiver ausente ou desatualizado (nova planilha da CEAGESP), gere-o **antes** do `docker compose up --build` seguindo os passos em [README.md](../README.md#2-executar-carga-inicial-de-dados-seed), já que o arquivo é copiado pra dentro da imagem no build._
+_O `data/sazonalidade_consolidada_produtos.csv` não é gerado automaticamente — se ele estiver ausente ou desatualizado (nova planilha da CEAGESP), gere-o **antes** do `docker compose up --build` seguindo os passos em [README.md](../README.md#como-executar-desenvolvimento-local), já que o arquivo é copiado pra dentro da imagem no build._
 
 Na primeira execução, é necessário rodar os scripts de seed para criar as tabelas no PostgreSQL, importar a sazonalidade dos alimentos e cadastrar os alimentos básicos do Guia Alimentar:
 

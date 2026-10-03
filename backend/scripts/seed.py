@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
 from app import create_app
-from app.models import db, Alimento, Sazonalidade, Usuario
+from app.models import db, Alimento, Sazonalidade
 
 app = create_app()
 
@@ -61,14 +61,6 @@ def seed_database():
         print("Criando tabelas no PostgreSQL...")
         db.create_all()
         print("Tabelas criadas com sucesso!")
-
-        # Garante a existência do usuário padrão ID = 1
-        user = Usuario.query.get(1)
-        if not user:
-            print("Criando usuário de teste padrão...")
-            user = Usuario(id=1, nome="Usuário de Teste", email="usuario@teste.com")
-            db.session.add(user)
-            db.session.commit()
 
         # Verifica se o banco já está populado com alimentos
         if Alimento.query.first() is not None:

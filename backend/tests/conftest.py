@@ -11,6 +11,7 @@ class TestConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = "test-secret"
     JWT_SECRET_KEY = "test-secret"
+    RATELIMIT_ENABLED = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "poolclass": StaticPool,
         "connect_args": {"check_same_thread": False},

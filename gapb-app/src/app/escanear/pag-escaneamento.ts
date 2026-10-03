@@ -127,9 +127,9 @@ export class EscanearComponent implements OnInit {
           imageUrl: res.product?.image_url || res.product?.image_front_thumb_url || res.product?.image_front_url,
           dados: res,
         };
-        localStorage.setItem(`guiabr_produto_${barcode}`, JSON.stringify(res));
-
         this.ultimosEscaneados = [item, ...this.ultimosEscaneados.filter(h => h.barcode !== barcode)].slice(0, 20);
+        this.podarCacheDeProdutos();
+        this.salvarProdutoNoCache(barcode, res);
         localStorage.setItem('guiabr_historico_scanner', JSON.stringify(this.ultimosEscaneados));
 
         this.router.navigate(['/resultado'], { state: { produto: item.dados } });
@@ -167,7 +167,7 @@ export class EscanearComponent implements OnInit {
         next: (res) => {
           this.carregandoDetalhes = false;
           item.dados = res;
-          localStorage.setItem(`guiabr_produto_${item.barcode}`, JSON.stringify(res));
+          this.salvarProdutoNoCache(item.barcode, res);
           this.router.navigate(['/resultado'], { state: { produto: res } });
         },
         error: (err) => {
@@ -177,6 +177,24 @@ export class EscanearComponent implements OnInit {
         },
       });
     }
+  }
+
+  /** Guarda o produto para reabrir sem rede. O cache é descartável: falta de espaço não pode interromper o fluxo. */
+  private salvarProdutoNoCache(barcode: string, produto: any) {
+    const chave = `guiabr_produto_${barcode}`;
+    try {
+      localStorage.setItem(chave, JSON.stringify(produto));
+    } catch (e) {
+      console.warn('Sem espaço para guardar o produto no cache local:', e);
+    }
+  }
+
+  /** Remove do cache os produtos que já saíram da lista de últimos escaneados. */
+  private podarCacheDeProdutos() {
+    const emUso = new Set(this.ultimosEscaneados.map(h => `guiabr_produto_${h.barcode}`));
+    Object.keys(localStorage)
+      .filter(chave => chave.startsWith('guiabr_produto_') && !emUso.has(chave))
+      .forEach(chave => localStorage.removeItem(chave));
   }
 
   async excluirHistorico(event: Event, item: ItemEscaneado) {

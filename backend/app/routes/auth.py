@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_limiter.util import get_remote_address
+from app.extensions import limiter
 from app.models import db, Usuario
 
 auth_bp = Blueprint('auth', __name__)
@@ -11,6 +13,15 @@ def _serializar_usuario(usuario: Usuario) -> dict:
         'nome': usuario.nome,
         'email': usuario.email,
     }
+
+
+def _chave_login() -> str:
+    """Limita por conta visada, não por IP: atrás do Nginx/Ngrok todos os clientes chegam com o mesmo IP."""
+    data = request.get_json(silent=True) or {}
+    email = data.get('email')
+    if isinstance(email, str) and email.strip():
+        return f"login:{email.strip().lower()}"
+    return get_remote_address()
 
 
 @auth_bp.route('/register', methods=['POST'])
@@ -46,6 +57,7 @@ def register():
 
 
 @auth_bp.route('/login', methods=['POST'])
+@limiter.limit("10 per minute", key_func=_chave_login)
 def login():
     """Autentica um usuário e retorna um token JWT."""
     data = request.get_json()

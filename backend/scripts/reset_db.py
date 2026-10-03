@@ -9,9 +9,13 @@ na ordem correta:
                      laticínios, ultraprocessados, etc.)
 
 O que NÃO é apagado:
-  - Tabela usuarios  (preserva contas de usuário)
-  - Tabela refeicoes / itens_refeicao  (preserva histórico de refeições)
-  - Tabela progresso_capitulos          (preserva progresso de aprendizado)
+  - Tabela usuarios             (preserva contas de usuário)
+  - Tabela refeicoes            (as refeições continuam existindo, mas ficam vazias)
+  - Tabela progresso_capitulos  (preserva progresso de aprendizado)
+
+O que É apagado junto com os alimentos (os IDs mudam na recarga):
+  - itens_refeicao     (itens de todas as refeições)
+  - historico_scanner  (histórico de produtos escaneados)
 
 Execute com:
     python reset_db.py
@@ -87,7 +91,8 @@ def seed_basicos():
 if __name__ == "__main__":
     print("\n" + "=" * 65)
     print("  RESET COMPLETO DO BANCO DE DADOS")
-    print("  Usuários, refeições e progresso serão PRESERVADOS.")
+    print("  Usuários e progresso serão PRESERVADOS.")
+    print("  Itens das refeições e histórico do scanner serão APAGADOS.")
     print("=" * 65 + "\n")
 
     confirmacao = input("Confirma o reset? [s/N]: ").strip().lower()

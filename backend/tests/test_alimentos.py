@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 
 import requests
 
-from app.models import db, Alimento, HistoricoScanner, Sazonalidade
+from app.models import db, Alimento, HistoricoScanner, Sazonalidade, mes_atual
 
 
 def _off_response(status_code=200, payload=None):
@@ -64,6 +64,14 @@ def test_busca_por_codigo_com_erro_de_rede_retorna_500(mock_get, client, auth_he
     assert resp.status_code == 500
 
 
+@patch("app.routes.alimentos.requests.get")
+def test_busca_por_codigo_nao_numerico_retorna_400_sem_chamar_off(mock_get, client, auth_headers):
+    resp = client.get("/api/alimentos/busca?codigo=../../cgi/x", headers=auth_headers)
+
+    assert resp.status_code == 400
+    mock_get.assert_not_called()
+
+
 def test_busca_por_query_retorna_apenas_alimentos_do_guia(client, auth_headers, app):
     with app.app_context():
         db.session.add(Alimento(nome="Banana Prata", grupo="FRUTAS"))
@@ -100,7 +108,7 @@ def test_todos_inclui_sazonalidade_atual(client, auth_headers, app):
         alimento = Alimento(nome="Manga", grupo="FRUTAS")
         db.session.add(alimento)
         db.session.flush()
-        db.session.add(Sazonalidade(alimento_id=alimento.id, mes=datetime.now().month, safra_atual=4))
+        db.session.add(Sazonalidade(alimento_id=alimento.id, mes=mes_atual(), safra_atual=4))
         db.session.commit()
 
     resp = client.get("/api/alimentos/todos", headers=auth_headers)

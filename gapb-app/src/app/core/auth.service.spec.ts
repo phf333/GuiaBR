@@ -4,11 +4,13 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { Router } from '@angular/router';
 import { AuthService, Usuario } from './auth.service';
 import { environment } from '../../environments/environment';
+import { LocalDbService } from './local-db.service';
 
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
   let routerSpy: jasmine.SpyObj<Router>;
+  let localDbSpy: jasmine.SpyObj<LocalDbService>;
   const base = environment.apiUrl;
 
   const TOKEN_KEY = 'guiabr_token';
@@ -24,6 +26,7 @@ describe('AuthService', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: Router, useValue: routerSpy },
+        { provide: LocalDbService, useValue: localDbSpy },
       ],
     });
     httpMock = TestBed.inject(HttpTestingController);
@@ -33,6 +36,8 @@ describe('AuthService', () => {
   beforeEach(() => {
     localStorage.clear();
     routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    localDbSpy = jasmine.createSpyObj('LocalDbService', ['clearUserData']);
+    localDbSpy.clearUserData.and.resolveTo();
   });
 
   afterEach(() => {
@@ -95,6 +100,69 @@ describe('AuthService', () => {
       expect(localStorage.getItem(USUARIO_KEY)).toBeNull();
       expect(service.usuarioAtual$.value).toBeNull();
       expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
+    });
+  });
+
+  describe('isolamento dos dados locais por usuario', () => {
+    const DONO_KEY = 'guiabr_dono_dados';
+    const outroUsuario: Usuario = { id: 2, nome: 'Bia', email: 'bia@x.com' };
+
+    function logar(resposta: { access_token: string; usuario: Usuario }) {
+      service.login(resposta.usuario.email, '123456').subscribe();
+      httpMock.expectOne(`${base}/api/auth/login`).flush(resposta);
+    }
+
+    beforeEach(() => {
+      service = criarService();
+    });
+
+    it('logout deve apagar os dados locais do usuario', () => {
+      logar(authResponse);
+      localStorage.setItem('guiabr_historico_scanner', '[]');
+      localStorage.setItem('outra_app', 'x');
+
+      service.logout();
+
+      expect(localStorage.getItem('guiabr_historico_scanner')).toBeNull();
+      expect(localStorage.getItem(DONO_KEY)).toBeNull();
+      expect(localStorage.getItem('outra_app')).toBe('x');
+      expect(localDbSpy.clearUserData).toHaveBeenCalled();
+    });
+
+    it('logout por sessao expirada deve preservar os dados locais', () => {
+      logar(authResponse);
+      localStorage.setItem('guiabr_historico_scanner', '[]');
+
+      service.logout(true);
+
+      expect(service.token).toBeNull();
+      expect(localStorage.getItem('guiabr_historico_scanner')).toBe('[]');
+      expect(localStorage.getItem(DONO_KEY)).toBe('1');
+      expect(localDbSpy.clearUserData).not.toHaveBeenCalled();
+    });
+
+    it('login do mesmo usuario apos sessao expirada deve manter os dados locais', () => {
+      logar(authResponse);
+      localStorage.setItem('guiabr_historico_scanner', '[]');
+      service.logout(true);
+
+      logar(authResponse);
+
+      expect(localStorage.getItem('guiabr_historico_scanner')).toBe('[]');
+      expect(localDbSpy.clearUserData).not.toHaveBeenCalled();
+    });
+
+    it('login de outro usuario deve apagar os dados locais do anterior', () => {
+      logar(authResponse);
+      localStorage.setItem('guiabr_historico_scanner', '[]');
+      service.logout(true);
+
+      logar({ access_token: 'tok-456', usuario: outroUsuario });
+
+      expect(localStorage.getItem('guiabr_historico_scanner')).toBeNull();
+      expect(localDbSpy.clearUserData).toHaveBeenCalled();
+      expect(service.token).toBe('tok-456');
+      expect(localStorage.getItem(DONO_KEY)).toBe('2');
     });
   });
 
