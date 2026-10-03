@@ -67,19 +67,15 @@ _Isso criará o banco Postgres, subirá o backend Flask em produção na porta 5
 
 _O `data/sazonalidade_consolidada_produtos.csv` não é gerado automaticamente — se ele estiver ausente ou desatualizado (nova planilha da CEAGESP), gere-o **antes** do `docker compose up --build` seguindo os passos em [README.md](../README.md#como-executar-desenvolvimento-local), já que o arquivo é copiado pra dentro da imagem no build._
 
-Na primeira execução, é necessário rodar os scripts de seed para criar as tabelas no PostgreSQL, importar a sazonalidade dos alimentos e cadastrar os alimentos básicos do Guia Alimentar:
+Na primeira execução, é necessário rodar o seed para criar as tabelas no PostgreSQL, importar a sazonalidade dos alimentos e cadastrar os alimentos básicos do Guia Alimentar:
 
 ```bash
-# Cria as tabelas e importa alimentos com sazonalidade (CSV)
 docker compose exec backend python scripts/seed.py
-
-# Importa alimentos básicos de referência do Guia Alimentar Brasileiro
-docker compose exec backend python scripts/seed_basicos.py
 ```
 
 _Você verá a mensagem de criação das tabelas e importação dos alimentos com sucesso._
 
-Para limpar e recarregar os alimentos do zero (sem apagar usuários, refeições ou progresso), existe também `scripts/reset_db.py` — veja o cabeçalho do arquivo para detalhes do que é preservado.
+Para apagar e recarregar os alimentos do zero, rode `docker compose exec backend python scripts/seed.py --reset`. Usuários e progresso dos capítulos são preservados; os itens das refeições e o histórico do scanner são apagados, porque os ids dos alimentos mudam.
 
 ---
 
