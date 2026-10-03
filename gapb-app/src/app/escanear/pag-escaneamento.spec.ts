@@ -4,7 +4,7 @@ import { EscanearComponent } from './pag-escaneamento';
 import { ApiService } from '../core/api.service';
 import { LocalDbService } from '../core/local-db.service';
 import { DialogService } from '../core/dialog.service';
-import { ItemEscaneado } from '../shared/models';
+import { ProdutoEscaneado } from '../shared/models';
 
 describe('EscanearComponent', () => {
   let component: EscanearComponent;
@@ -15,6 +15,19 @@ describe('EscanearComponent', () => {
 
   // 1234567890128 é um EAN-13 com dígito verificador válido (8).
   const BARCODE_VALIDO = '1234567890128';
+
+  function produto(over: Partial<ProdutoEscaneado> = {}): ProdutoEscaneado {
+    return {
+      codigo_barras: '789',
+      nome: 'Produto',
+      marca: null,
+      quantidade: null,
+      nova_group: 1,
+      classificacao_guia: 'in natura',
+      imagem_url: null,
+      ...over,
+    };
+  }
 
   beforeEach(() => {
     localStorage.clear();
@@ -29,9 +42,7 @@ describe('EscanearComponent', () => {
 
   describe('ngOnInit', () => {
     it('deve carregar do cache local e depois atualizar via carregarHistorico', () => {
-      const cache: ItemEscaneado[] = [
-        { nome: 'Cache', label: 'l', tipo: 'saudavel', barcode: '1', dados: null },
-      ];
+      const cache = [produto({ nome: 'Cache' })];
       localStorage.setItem('guiabr_historico_scanner', JSON.stringify(cache));
       apiSpy.get.and.returnValue(of([]));
 
@@ -88,17 +99,14 @@ describe('EscanearComponent', () => {
   });
 
   describe('carregarHistorico', () => {
-    it('deve mapear o historico do backend e cachear localmente', () => {
-      apiSpy.get.and.returnValue(
-        of([{ nome: 'Refri', classificacao_guia: 'ultraprocessado', codigo_barras: '789', image_url: 'u' }]),
-      );
+    it('deve usar o historico do backend e cachear localmente', () => {
+      const historico = [produto({ nome: 'Refri', nova_group: 4, classificacao_guia: 'ultraprocessado' })];
+      apiSpy.get.and.returnValue(of(historico));
 
       component.carregarHistorico();
 
-      expect(component.ultimosEscaneados.length).toBe(1);
-      expect(component.ultimosEscaneados[0].nome).toBe('Refri');
-      expect(component.ultimosEscaneados[0].tipo).toBe('ultraprocessado');
-      expect(localStorage.getItem('guiabr_historico_scanner')).toBeTruthy();
+      expect(component.ultimosEscaneados).toEqual(historico);
+      expect(JSON.parse(localStorage.getItem('guiabr_historico_scanner')!)).toEqual(historico);
     });
 
     it('deve zerar a lista quando o backend retorna vazio', () => {
@@ -110,23 +118,13 @@ describe('EscanearComponent', () => {
     });
 
     it('deve ler do cache local quando o backend falha', () => {
-      const cache: ItemEscaneado[] = [
-        { nome: 'Cache', label: 'x', tipo: 'saudavel', barcode: '1', dados: null },
-      ];
+      const cache = [produto({ nome: 'Cache' })];
       localStorage.setItem('guiabr_historico_scanner', JSON.stringify(cache));
       apiSpy.get.and.returnValue(throwError(() => new Error('offline')));
 
       component.carregarHistorico();
 
       expect(component.ultimosEscaneados[0].nome).toBe('Cache');
-    });
-
-    it('deve lidar com item sem classificacao_guia (nova indefinida)', () => {
-      apiSpy.get.and.returnValue(of([{ nome: 'Sem classe', codigo_barras: '111' }]));
-
-      component.carregarHistorico();
-
-      expect(component.ultimosEscaneados[0].tipo).toBe('indisponivel');
     });
 
     it('deve logar erro quando o cache local estiver corrompido e o backend falhar', () => {
@@ -150,7 +148,7 @@ describe('EscanearComponent', () => {
     });
 
     it('deve buscar o produto e navegar para /resultado em caso de sucesso', () => {
-      const res = { product: { product_name: 'Bolacha', nova_group: 4, image_url: 'u' } };
+      const res = produto({ codigo_barras: BARCODE_VALIDO, nome: 'Bolacha', nova_group: 4 });
       apiSpy.get.and.returnValue(of(res));
 
       component.handleScanSuccess(BARCODE_VALIDO);
@@ -158,7 +156,7 @@ describe('EscanearComponent', () => {
       expect(component.showScanner).toBeFalse();
       expect(component.carregandoDetalhes).toBeFalse();
       expect(apiSpy.get).toHaveBeenCalledWith('/api/alimentos/busca', { codigo: BARCODE_VALIDO });
-      expect(component.ultimosEscaneados[0].nome).toBe('Bolacha');
+      expect(component.ultimosEscaneados[0]).toEqual(res);
       expect(routerSpy.navigate).toHaveBeenCalledWith(['/resultado'], { state: { produto: res } });
     });
 
@@ -181,47 +179,19 @@ describe('EscanearComponent', () => {
       );
     });
 
-    it('deve usar nome padrao quando o backend nao retorna product_name', () => {
-      const res = { product: {} };
-      apiSpy.get.and.returnValue(of(res));
+    it('deve manter no maximo 20 itens no historico', () => {
+      component.ultimosEscaneados = Array.from({ length: 20 }, (_, i) => produto({ codigo_barras: `c${i}` }));
+      apiSpy.get.and.returnValue(of(produto({ codigo_barras: BARCODE_VALIDO })));
 
       component.handleScanSuccess(BARCODE_VALIDO);
 
-      expect(component.ultimosEscaneados[0].nome).toBe('Produto desconhecido');
-      expect(component.ultimosEscaneados[0].imageUrl).toBeUndefined();
-    });
-
-    it('deve navegar mesmo quando o localStorage nao aceita o produto', () => {
-      const res = { product: { product_name: 'Bolacha' } };
-      apiSpy.get.and.returnValue(of(res));
-      const setItemOriginal = localStorage.setItem.bind(localStorage);
-      spyOn(localStorage, 'setItem').and.callFake((chave: string, valor: string) => {
-        if (chave.startsWith('guiabr_produto_')) throw new Error('QuotaExceededError');
-        setItemOriginal(chave, valor);
-      });
-      spyOn(console, 'warn');
-
-      component.handleScanSuccess(BARCODE_VALIDO);
-
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/resultado'], { state: { produto: res } });
-    });
-
-    it('deve remover do cache os produtos que nao estao mais no historico', () => {
-      localStorage.setItem('guiabr_produto_111', '{}');
-      apiSpy.get.and.returnValue(of({ product: { product_name: 'Bolacha' } }));
-
-      component.handleScanSuccess(BARCODE_VALIDO);
-
-      expect(localStorage.getItem('guiabr_produto_111')).toBeNull();
-      expect(localStorage.getItem(`guiabr_produto_${BARCODE_VALIDO}`)).not.toBeNull();
+      expect(component.ultimosEscaneados.length).toBe(20);
+      expect(component.ultimosEscaneados[0].codigo_barras).toBe(BARCODE_VALIDO);
     });
 
     it('deve substituir uma entrada existente do mesmo barcode no historico', () => {
-      component.ultimosEscaneados = [
-        { nome: 'Antigo', label: 'l', tipo: 'saudavel', barcode: BARCODE_VALIDO, dados: null },
-      ];
-      const res = { product: { product_name: 'Novo' } };
-      apiSpy.get.and.returnValue(of(res));
+      component.ultimosEscaneados = [produto({ codigo_barras: BARCODE_VALIDO, nome: 'Antigo' })];
+      apiSpy.get.and.returnValue(of(produto({ codigo_barras: BARCODE_VALIDO, nome: 'Novo' })));
 
       component.handleScanSuccess(BARCODE_VALIDO);
 
@@ -231,66 +201,20 @@ describe('EscanearComponent', () => {
   });
 
   describe('verResultado', () => {
-    it('deve navegar direto quando o item ja tem dados', () => {
-      const item: ItemEscaneado = { nome: 'X', label: 'l', tipo: 'saudavel', barcode: '1', dados: { product: {} } };
+    it('deve navegar para /resultado com o produto, sem consultar o backend', () => {
+      const item = produto();
 
       component.verResultado(item);
 
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/resultado'], { state: { produto: item.dados } });
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/resultado'], { state: { produto: item } });
       expect(apiSpy.get).not.toHaveBeenCalled();
-    });
-
-    it('deve usar o produto do cache do localStorage quando disponivel', () => {
-      const produto = { product: { product_name: 'Cacheado' } };
-      localStorage.setItem('guiabr_produto_789', JSON.stringify(produto));
-      const item: ItemEscaneado = { nome: 'X', label: 'l', tipo: 'saudavel', barcode: '789', dados: null };
-
-      component.verResultado(item);
-
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/resultado'], { state: { produto } });
-      expect(apiSpy.get).not.toHaveBeenCalled();
-    });
-
-    it('deve buscar no backend quando nao ha dados nem cache', () => {
-      const res = { product: { product_name: 'Buscado' } };
-      apiSpy.get.and.returnValue(of(res));
-      const item: ItemEscaneado = { nome: 'X', label: 'l', tipo: 'saudavel', barcode: '789', dados: null };
-
-      component.verResultado(item);
-
-      expect(apiSpy.get).toHaveBeenCalledWith('/api/alimentos/busca', { codigo: '789', historico: 'false' });
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/resultado'], { state: { produto: res } });
-    });
-
-    it('deve ignorar cache corrompido e buscar no backend', () => {
-      localStorage.setItem('guiabr_produto_789', '{invalido');
-      apiSpy.get.and.returnValue(of({ product: { product_name: 'X' } }));
-      const item: ItemEscaneado = { nome: 'X', label: 'l', tipo: 'saudavel', barcode: '789', dados: null };
-
-      component.verResultado(item);
-
-      expect(apiSpy.get).toHaveBeenCalled();
-    });
-
-    it('deve alertar erro quando a busca de detalhes falha', () => {
-      apiSpy.get.and.returnValue(throwError(() => new Error('offline')));
-      const item: ItemEscaneado = { nome: 'X', label: 'l', tipo: 'saudavel', barcode: '789', dados: null };
-
-      component.verResultado(item);
-
-      expect(component.carregandoDetalhes).toBeFalse();
-      expect(dialogSpy.alert).toHaveBeenCalledWith(
-        'Erro ao buscar detalhes do produto. Verifique sua conexão de internet.',
-      );
     });
   });
 
   describe('excluirHistorico', () => {
     it('nao deve remover nada quando o usuario cancela', async () => {
       dialogSpy.confirm.and.resolveTo(false);
-      component.ultimosEscaneados = [
-        { nome: 'A', label: 'l', tipo: 'saudavel', barcode: '1', dados: null },
-      ];
+      component.ultimosEscaneados = [produto()];
 
       await component.excluirHistorico(new Event('click'), component.ultimosEscaneados[0]);
 
@@ -301,7 +225,7 @@ describe('EscanearComponent', () => {
       spyOnProperty(navigator, 'onLine', 'get').and.returnValue(true);
       dialogSpy.confirm.and.resolveTo(true);
       apiSpy.delete.and.returnValue(of({}));
-      const item: ItemEscaneado = { nome: 'A', label: 'l', tipo: 'saudavel', barcode: '789', dados: null };
+      const item = produto();
       component.ultimosEscaneados = [item];
 
       await component.excluirHistorico(new Event('click'), item);
@@ -314,7 +238,7 @@ describe('EscanearComponent', () => {
       spyOnProperty(navigator, 'onLine', 'get').and.returnValue(false);
       dialogSpy.confirm.and.resolveTo(true);
       localDbSpy.addToSyncQueue.and.resolveTo();
-      const item: ItemEscaneado = { nome: 'A', label: 'l', tipo: 'saudavel', barcode: '789', dados: null };
+      const item = produto();
       component.ultimosEscaneados = [item];
 
       await component.excluirHistorico(new Event('click'), item);
@@ -328,7 +252,7 @@ describe('EscanearComponent', () => {
       dialogSpy.confirm.and.resolveTo(true);
       apiSpy.delete.and.returnValue(throwError(() => new Error('falha')));
       spyOn(console, 'error');
-      const item: ItemEscaneado = { nome: 'A', label: 'l', tipo: 'saudavel', barcode: '789', dados: null };
+      const item = produto();
       component.ultimosEscaneados = [item];
 
       await component.excluirHistorico(new Event('click'), item);

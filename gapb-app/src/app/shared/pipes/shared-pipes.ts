@@ -38,14 +38,6 @@ export const NOVA_GROUPS: Record<number, NovaGroupInfo> = {
   }
 };
 
-/** Inverso de NOVA_GROUPS: converte a string classificacao_guia no número do grupo NOVA (1-4). */
-export const CLASSE_PARA_NOVA: Record<string, number> = {
-  'in natura': 1,
-  'ingrediente culinario': 2,
-  'processado': 3,
-  'ultraprocessado': 4,
-};
-
 export interface ClassificacaoNova {
   hasNova: boolean;
   label: string;
@@ -95,6 +87,13 @@ export const TIPO_LABELS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 // Pipes de Formatação do Guia Alimentar e Refeições
 // ---------------------------------------------------------------------------
+
+@Pipe({ name: 'classificacaoNova', standalone: true, pure: true })
+export class ClassificacaoNovaPipe implements PipeTransform {
+  transform(novaGroup: number | undefined | null): ClassificacaoNova {
+    return classificarPorNovaGroup(novaGroup);
+  }
+}
 
 @Pipe({ name: 'classeGuia', standalone: true, pure: true })
 export class ClasseGuiaPipe implements PipeTransform {

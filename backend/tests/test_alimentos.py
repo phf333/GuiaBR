@@ -16,14 +16,64 @@ def _off_response(status_code=200, payload=None):
 @patch("app.routes.alimentos.requests.get")
 def test_busca_por_codigo_desconhecido_consulta_off_e_cria_alimento(mock_get, client, auth_headers):
     mock_get.return_value = _off_response(200, {
-        "product": {"product_name": "Suco de Uva Integral", "nova_group": 1},
+        "product": {
+            "product_name": "Suco de Uva Integral", "nova_group": 1,
+            "brands": "Marca", "quantity": "1 L", "image_url": "http://img/x.jpg",
+            "ingredients_text": "campo que o app não usa",
+        },
     })
 
     resp = client.get("/api/alimentos/busca?codigo=7891000100103", headers=auth_headers)
 
     assert resp.status_code == 200
-    assert resp.get_json()["product"]["product_name"] == "Suco de Uva Integral"
+    assert resp.get_json() == {
+        "codigo_barras": "7891000100103",
+        "nome": "Suco de Uva Integral",
+        "marca": "Marca",
+        "quantidade": "1 L",
+        "nova_group": 1,
+        "classificacao_guia": "in natura",
+        "imagem_url": "http://img/x.jpg",
+    }
     mock_get.assert_called_once()
+
+
+@patch("app.routes.alimentos.requests.get")
+def test_busca_por_codigo_guarda_a_resposta_completa_do_off(mock_get, client, auth_headers, app):
+    payload = {"product": {"product_name": "Suco", "nova_group": 1, "ingredients_text": "uva"}}
+    mock_get.return_value = _off_response(200, payload)
+
+    resp = client.get("/api/alimentos/busca?codigo=7891000100103", headers=auth_headers)
+
+    assert "ingredients_text" not in resp.get_json()
+    with app.app_context():
+        alimento = Alimento.query.filter_by(codigo_barras="7891000100103").one()
+        assert alimento.dados_completos == payload
+
+
+@patch("app.routes.alimentos.requests.get")
+def test_busca_por_codigo_ja_cacheado_devolve_os_campos_do_produto(mock_get, client, auth_headers, app):
+    with app.app_context():
+        db.session.add(Alimento(
+            nome="Refrigerante X",
+            grupo="OFF - Marca",
+            classificacao_guia="ultraprocessado",
+            codigo_barras="789001",
+            dados_completos={"product": {
+                "product_name": "Refrigerante X", "nova_group": 4,
+                "brands": "Marca", "quantity": "2 L", "image_front_url": "http://img/r.jpg",
+            }},
+        ))
+        db.session.commit()
+
+    body = client.get("/api/alimentos/busca?codigo=789001", headers=auth_headers).get_json()
+
+    assert body["marca"] == "Marca"
+    assert body["quantidade"] == "2 L"
+    assert body["nova_group"] == 4
+    assert body["classificacao_guia"] == "ultraprocessado"
+    assert body["imagem_url"] == "http://img/r.jpg"
+    mock_get.assert_not_called()
 
 
 @patch("app.routes.alimentos.requests.get")
@@ -42,7 +92,8 @@ def test_busca_por_codigo_ja_cacheado_nao_chama_off(mock_get, client, auth_heade
     resp = client.get("/api/alimentos/busca?codigo=789000", headers=auth_headers)
 
     assert resp.status_code == 200
-    assert resp.get_json()["product"]["product_name"] == "Refrigerante X"
+    assert resp.get_json()["nome"] == "Refrigerante X"
+    assert resp.get_json()["classificacao_guia"] == "ultraprocessado"
     mock_get.assert_not_called()
 
 
@@ -138,8 +189,12 @@ def test_historico_retorna_consultas_do_usuario_ordenadas_por_data(client, regis
     resp = client.get("/api/alimentos/historico", headers=headers)
 
     assert resp.status_code == 200
-    nomes = [h["nome"] for h in resp.get_json()]
-    assert nomes == ["Item Novo", "Item Antigo"]
+    historico = resp.get_json()
+    assert [h["nome"] for h in historico] == ["Item Novo", "Item Antigo"]
+    assert set(historico[0]) == {
+        "codigo_barras", "nome", "marca", "quantidade", "nova_group",
+        "classificacao_guia", "imagem_url", "data_consulta",
+    }
 
 
 def test_historico_nao_mostra_consultas_de_outro_usuario(client, registrar_usuario, app):

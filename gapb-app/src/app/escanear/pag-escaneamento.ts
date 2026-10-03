@@ -6,14 +6,14 @@ import { BarcodeFormat } from '@zxing/library';
 import { ApiService } from '../core/api.service';
 import { LocalDbService } from '../core/local-db.service';
 import { DialogService } from '../core/dialog.service';
-import { CLASSE_PARA_NOVA, classificarPorNovaGroup } from '../shared/pipes/shared-pipes';
-import { ItemEscaneado } from '../shared/models';
+import { ClassificacaoNovaPipe } from '../shared/pipes/shared-pipes';
+import { ProdutoEscaneado } from '../shared/models';
 import { NavHeaderComponent } from '../shared/components/nav-header/nav-header';
 
 @Component({
   selector: 'pag-escaneamento',
   standalone: true,
-  imports: [CommonModule, ZXingScannerModule, NavHeaderComponent],
+  imports: [CommonModule, ZXingScannerModule, NavHeaderComponent, ClassificacaoNovaPipe],
   templateUrl: './pag-escaneamento.html',
   styleUrl: './pag-escaneamento.scss',
   host: { class: 'page-fill page-fill--relative' },
@@ -30,7 +30,7 @@ export class EscanearComponent implements OnInit {
   carregandoDetalhes = false;
   allowedFormats = [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A];
 
-  ultimosEscaneados: ItemEscaneado[] = [];
+  ultimosEscaneados: ProdutoEscaneado[] = [];
 
   ngOnInit() {
     const cached = localStorage.getItem('guiabr_historico_scanner');
@@ -45,27 +45,10 @@ export class EscanearComponent implements OnInit {
   }
 
   carregarHistorico() {
-    this.api.get<any[]>('/api/alimentos/historico').subscribe({
+    this.api.get<ProdutoEscaneado[]>('/api/alimentos/historico').subscribe({
       next: (historico) => {
-        if (historico && historico.length > 0) {
-          this.ultimosEscaneados = historico.map(h => {
-            const normalizedClasse = h.classificacao_guia?.toLowerCase();
-            const nova = normalizedClasse ? CLASSE_PARA_NOVA[normalizedClasse] : undefined;
-            const classificacao = classificarPorNovaGroup(nova);
-            return {
-              nome: h.nome,
-              label: classificacao.label,
-              tipo: classificacao.tipo,
-              barcode: h.codigo_barras,
-              imageUrl: h.image_url,
-              dados: null
-            };
-          });
-          localStorage.setItem('guiabr_historico_scanner', JSON.stringify(this.ultimosEscaneados));
-        } else {
-          this.ultimosEscaneados = [];
-          localStorage.setItem('guiabr_historico_scanner', JSON.stringify([]));
-        }
+        this.ultimosEscaneados = historico ?? [];
+        localStorage.setItem('guiabr_historico_scanner', JSON.stringify(this.ultimosEscaneados));
       },
       error: (err) => {
         console.warn('Erro ao carregar histórico do backend, lendo do cache local:', err);
@@ -115,24 +98,16 @@ export class EscanearComponent implements OnInit {
     this.showScanner = false;
     this.carregandoDetalhes = true;
 
-    this.api.get<any>('/api/alimentos/busca', { codigo: barcode }).subscribe({
-      next: (res) => {
+    this.api.get<ProdutoEscaneado>('/api/alimentos/busca', { codigo: barcode }).subscribe({
+      next: (produto) => {
         this.carregandoDetalhes = false;
-        const classificacao = classificarPorNovaGroup(res.product?.nova_group);
-        const item: ItemEscaneado = {
-          nome: res.product?.product_name || 'Produto desconhecido',
-          label: classificacao.label,
-          tipo: classificacao.tipo,
-          barcode,
-          imageUrl: res.product?.image_url || res.product?.image_front_thumb_url || res.product?.image_front_url,
-          dados: res,
-        };
-        this.ultimosEscaneados = [item, ...this.ultimosEscaneados.filter(h => h.barcode !== barcode)].slice(0, 20);
-        this.podarCacheDeProdutos();
-        this.salvarProdutoNoCache(barcode, res);
+        this.ultimosEscaneados = [
+          produto,
+          ...this.ultimosEscaneados.filter(h => h.codigo_barras !== produto.codigo_barras),
+        ].slice(0, 20);
         localStorage.setItem('guiabr_historico_scanner', JSON.stringify(this.ultimosEscaneados));
 
-        this.router.navigate(['/resultado'], { state: { produto: item.dados } });
+        this.verResultado(produto);
       },
       error: (err) => {
         this.carregandoDetalhes = false;
@@ -146,69 +121,19 @@ export class EscanearComponent implements OnInit {
     });
   }
 
-  verResultado(item: ItemEscaneado) {
-    if (item.dados) {
-      this.router.navigate(['/resultado'], { state: { produto: item.dados } });
-    } else if (item.barcode) {
-      const cachedProduct = localStorage.getItem(`guiabr_produto_${item.barcode}`);
-      if (cachedProduct) {
-        try {
-          const res = JSON.parse(cachedProduct);
-          item.dados = res;
-          this.router.navigate(['/resultado'], { state: { produto: res } });
-          return;
-        } catch (e) {
-          console.error('Erro ao ler produto do cache do localStorage:', e);
-        }
-      }
-
-      this.carregandoDetalhes = true;
-      this.api.get<any>('/api/alimentos/busca', { codigo: item.barcode, historico: 'false' }).subscribe({
-        next: (res) => {
-          this.carregandoDetalhes = false;
-          item.dados = res;
-          this.salvarProdutoNoCache(item.barcode, res);
-          this.router.navigate(['/resultado'], { state: { produto: res } });
-        },
-        error: (err) => {
-          this.carregandoDetalhes = false;
-          console.error('Erro ao buscar detalhes do produto no histórico:', err);
-          this.dialog.alert('Erro ao buscar detalhes do produto. Verifique sua conexão de internet.');
-        },
-      });
-    }
+  verResultado(produto: ProdutoEscaneado) {
+    this.router.navigate(['/resultado'], { state: { produto } });
   }
 
-  /** Guarda o produto para reabrir sem rede. O cache é descartável: falta de espaço não pode interromper o fluxo. */
-  private salvarProdutoNoCache(barcode: string, produto: any) {
-    const chave = `guiabr_produto_${barcode}`;
-    try {
-      localStorage.setItem(chave, JSON.stringify(produto));
-    } catch (e) {
-      console.warn('Sem espaço para guardar o produto no cache local:', e);
-    }
-  }
-
-  /** Remove do cache os produtos que já saíram da lista de últimos escaneados. */
-  private podarCacheDeProdutos() {
-    const emUso = new Set(this.ultimosEscaneados.map(h => `guiabr_produto_${h.barcode}`));
-    Object.keys(localStorage)
-      .filter(chave => chave.startsWith('guiabr_produto_') && !emUso.has(chave))
-      .forEach(chave => localStorage.removeItem(chave));
-  }
-
-  async excluirHistorico(event: Event, item: ItemEscaneado) {
+  async excluirHistorico(event: Event, item: ProdutoEscaneado) {
     event.stopPropagation();
     if (!(await this.dialog.confirm('Deseja realmente remover este item do histórico?'))) return;
 
-    this.ultimosEscaneados = this.ultimosEscaneados.filter(h => h.barcode !== item.barcode || h.nome !== item.nome);
+    this.ultimosEscaneados = this.ultimosEscaneados.filter(h => h.codigo_barras !== item.codigo_barras);
     localStorage.setItem('guiabr_historico_scanner', JSON.stringify(this.ultimosEscaneados));
-    if (item.barcode) {
-      localStorage.removeItem(`guiabr_produto_${item.barcode}`);
-    }
 
-    if (navigator.onLine && item.barcode) {
-      this.api.delete(`/api/alimentos/historico/${item.barcode}`).subscribe({
+    if (navigator.onLine) {
+      this.api.delete(`/api/alimentos/historico/${item.codigo_barras}`).subscribe({
         next: () => {
           console.log('Item removido do histórico no backend.');
         },
@@ -217,10 +142,8 @@ export class EscanearComponent implements OnInit {
         }
       });
     } else {
-      if (item.barcode) {
-        this.localDb.addToSyncQueue('deletar_historico', { barcode: item.barcode })
-          .then(() => console.log('Exclusão de histórico enfileirada offline.'));
-      }
+      this.localDb.addToSyncQueue('deletar_historico', { barcode: item.codigo_barras })
+        .then(() => console.log('Exclusão de histórico enfileirada offline.'));
     }
   }
 
