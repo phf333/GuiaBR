@@ -155,6 +155,22 @@ describe('SyncProcessorService', () => {
       expect(localDbSpy.removeFromSyncQueue).toHaveBeenCalledWith(7);
     });
 
+    it('deve sincronizar a acao salvar_posicao', async () => {
+      setOnline(true);
+      const queue: SyncTask[] = [
+        { id: 11, action: 'salvar_posicao', payload: { numero: 2, ultimo_card: 3 }, timestamp: 1 },
+      ];
+      localDbSpy.getSyncQueue.and.returnValues(Promise.resolve(queue), Promise.resolve([]));
+      apiSpy.post.and.returnValue(of([]));
+      apiSpy.get.and.returnValue(of([]));
+      const service = criar();
+
+      await service.processQueue();
+
+      expect(apiSpy.post).toHaveBeenCalledWith('/api/capitulos/2/posicao', { ultimo_card: 3 });
+      expect(localDbSpy.removeFromSyncQueue).toHaveBeenCalledWith(11);
+    });
+
     it('deve sincronizar a acao resetar_progresso', async () => {
       setOnline(true);
       const queue: SyncTask[] = [

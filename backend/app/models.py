@@ -161,7 +161,9 @@ class ProgressoCapitulo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
     capitulo_numero = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='active') 
+    status = db.Column(db.String(20), nullable=False, default='active')
+    # Índice do card em que o usuário parou no capítulo.
+    ultimo_card = db.Column(db.Integer, nullable=False, default=0, server_default='0')
     data_atualizacao = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
     __table_args__ = (

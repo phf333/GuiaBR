@@ -10,6 +10,7 @@ export interface PayloadsSync {
   remover_item: { refeicaoId: number; alimentoId: number };
   deletar_historico: { barcode: string };
   concluir_capitulo: { numero: number };
+  salvar_posicao: { numero: number; ultimo_card: number };
   resetar_progresso: Record<string, never>;
 }
 

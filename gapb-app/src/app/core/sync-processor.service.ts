@@ -58,6 +58,12 @@ export class SyncProcessorService implements OnDestroy {
       await firstValueFrom(this.api.post(`/api/capitulos/${payload.numero}/concluir`, {}));
     },
 
+    salvar_posicao: async (payload) => {
+      await firstValueFrom(this.api.post(
+        `/api/capitulos/${payload.numero}/posicao`, { ultimo_card: payload.ultimo_card }
+      ));
+    },
+
     resetar_progresso: async () => {
       await firstValueFrom(this.api.post('/api/capitulos/reset', {}));
     },

@@ -56,6 +56,7 @@ describe('CapituloComponent', () => {
       'obterUltimoCard',
       'salvarUltimoCard',
       'concluirCapitulo',
+      'enviarPosicao',
     ]);
     guiaServiceMock.obterUltimoCard.and.returnValue(0);
     component = new CapituloComponent(routerSpy, guiaServiceMock);
@@ -114,6 +115,22 @@ describe('CapituloComponent', () => {
       component.ngOnInit();
 
       expect(guiaServiceMock.concluirCapitulo).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('ngOnDestroy', () => {
+    it('deve mandar a posicao de leitura ao sair do capitulo', () => {
+      component.capitulo = { numero: 2, titulo: 'T', status: 'active', cards: [] };
+
+      component.ngOnDestroy();
+
+      expect(guiaServiceMock.enviarPosicao).toHaveBeenCalledWith(2);
+    });
+
+    it('nao deve fazer nada quando nenhum capitulo foi aberto', () => {
+      component.ngOnDestroy();
+
+      expect(guiaServiceMock.enviarPosicao).not.toHaveBeenCalled();
     });
   });
 
