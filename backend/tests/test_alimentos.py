@@ -123,19 +123,6 @@ def test_busca_por_codigo_nao_numerico_retorna_400_sem_chamar_off(mock_get, clie
     mock_get.assert_not_called()
 
 
-def test_busca_por_query_retorna_apenas_alimentos_do_guia(client, auth_headers, app):
-    with app.app_context():
-        db.session.add(Alimento(nome="Banana Prata", grupo="FRUTAS"))
-        db.session.add(Alimento(nome="Banana Chips", grupo="OUTROS", codigo_barras="111"))
-        db.session.commit()
-
-    resp = client.get("/api/alimentos/busca?q=Banana", headers=auth_headers)
-
-    assert resp.status_code == 200
-    nomes = [a["nome"] for a in resp.get_json()]
-    assert nomes == ["Banana Prata"]
-
-
 def test_busca_sem_parametros_retorna_400(client, auth_headers):
     resp = client.get("/api/alimentos/busca", headers=auth_headers)
     assert resp.status_code == 400

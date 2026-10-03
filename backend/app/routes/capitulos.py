@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.exc import IntegrityError
 from app.models import db, ProgressoCapitulo, Usuario
 
 capitulos_bp = Blueprint('capitulos', __name__)
@@ -8,84 +9,66 @@ CAPITULOS_NUMEROS = [1, 2, 3, 4, 5, 6]
 STATUS_INICIAL_CAPITULO = 'active'
 
 
-def obter_ou_criar_progresso(usuario_id):
-    """Retorna {numero: status} para todos os capítulos conhecidos."""
-    user = db.session.get(Usuario, usuario_id)
-    if not user:
-        return None
-
-    progresso_list = ProgressoCapitulo.query.filter_by(usuario_id=usuario_id).all()
-    numeros_existentes = {p.capitulo_numero for p in progresso_list}
-
-    novos = []
-    for numero in CAPITULOS_NUMEROS:
-        if numero not in numeros_existentes:
-            p = ProgressoCapitulo(
-                usuario_id=usuario_id,
-                capitulo_numero=numero,
-                status=STATUS_INICIAL_CAPITULO
-            )
-            db.session.add(p)
-            novos.append(p)
-
-    if novos:
-        db.session.commit()
-        progresso_list = progresso_list + novos
-
-    return {p.capitulo_numero: p.status for p in progresso_list}
-
-
-def _montar_resposta(progresso_map: dict) -> list:
+def _progresso(usuario_id: int) -> list:
+    """Status de todos os capítulos. Só os concluídos têm linha no banco; os demais estão no status inicial."""
+    concluidos = {
+        p.capitulo_numero
+        for p in ProgressoCapitulo.query.filter_by(usuario_id=usuario_id, status='done')
+    }
     return [
-        {'numero': num, 'status': progresso_map.get(num, 'active')}
-        for num in CAPITULOS_NUMEROS
+        {'numero': numero, 'status': 'done' if numero in concluidos else STATUS_INICIAL_CAPITULO}
+        for numero in CAPITULOS_NUMEROS
     ]
+
+
+def _usuario_nao_encontrado():
+    return jsonify({'error': 'Usuário não encontrado'}), 404
 
 
 @capitulos_bp.route('', methods=['GET'])
 @jwt_required()
 def get_capitulos():
     usuario_id = int(get_jwt_identity())
-    progresso_map = obter_ou_criar_progresso(usuario_id)
-    if progresso_map is None:
-        return jsonify({'error': 'Usuário não encontrado'}), 404
+    if not db.session.get(Usuario, usuario_id):
+        return _usuario_nao_encontrado()
 
-    return jsonify(_montar_resposta(progresso_map))
+    return jsonify(_progresso(usuario_id))
 
 
 @capitulos_bp.route('/<int:numero>/concluir', methods=['POST'])
 @jwt_required()
 def concluir_capitulo(numero):
     usuario_id = int(get_jwt_identity())
-    progresso_map = obter_ou_criar_progresso(usuario_id)
-    if progresso_map is None:
-        return jsonify({'error': 'Usuário não encontrado'}), 404
+    if not db.session.get(Usuario, usuario_id):
+        return _usuario_nao_encontrado()
+    if numero not in CAPITULOS_NUMEROS:
+        return jsonify({'error': 'Capítulo não encontrado'}), 404
 
-    progresso_atual = ProgressoCapitulo.query.filter_by(
+    progresso = ProgressoCapitulo.query.filter_by(
         usuario_id=usuario_id, capitulo_numero=numero
     ).first()
-    if progresso_atual and progresso_atual.status != 'done':
-        progresso_atual.status = 'done'
-        db.session.add(progresso_atual)
+    if progresso:
+        progresso.status = 'done'
+    else:
+        db.session.add(ProgressoCapitulo(usuario_id=usuario_id, capitulo_numero=numero, status='done'))
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Outra requisição concluiu o mesmo capítulo ao mesmo tempo; o resultado é o mesmo.
+        db.session.rollback()
 
-    progresso_list = ProgressoCapitulo.query.filter_by(usuario_id=usuario_id).all()
-    progresso_map = {p.capitulo_numero: p.status for p in progresso_list}
-    return jsonify(_montar_resposta(progresso_map))
+    return jsonify(_progresso(usuario_id))
 
 
 @capitulos_bp.route('/reset', methods=['POST'])
 @jwt_required()
 def resetar_progresso():
     usuario_id = int(get_jwt_identity())
-    user = db.session.get(Usuario, usuario_id)
-    if not user:
-        return jsonify({'error': 'Usuário não encontrado'}), 404
+    if not db.session.get(Usuario, usuario_id):
+        return _usuario_nao_encontrado()
 
     ProgressoCapitulo.query.filter_by(usuario_id=usuario_id).delete()
     db.session.commit()
 
-    progresso_map = obter_ou_criar_progresso(usuario_id)
-    return jsonify(_montar_resposta(progresso_map))
-
+    return jsonify(_progresso(usuario_id))

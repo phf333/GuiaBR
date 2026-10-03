@@ -20,8 +20,6 @@ export class ApiService {
         }
       });
     }
-    // Adiciona cache-buster para evitar que o navegador use respostas em cache
-    httpParams = httpParams.set('_t', new Date().getTime().toString());
     return this.http.get<T>(`${this.baseUrl}${path}`, { params: httpParams });
   }
 

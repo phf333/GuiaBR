@@ -5,12 +5,7 @@ import { tap } from 'rxjs/operators';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { LocalDbService } from './local-db.service';
-
-export interface Usuario {
-  id: number;
-  nome: string;
-  email: string;
-}
+import { Usuario } from '../shared/models';
 
 interface AuthResponse {
   access_token: string;

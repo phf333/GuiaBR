@@ -4,7 +4,7 @@ import requests
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload, selectinload
-from app.models import db, Alimento, HistoricoScanner, Sazonalidade, mes_atual
+from app.models import db, Alimento, HistoricoScanner
 
 alimentos_bp = Blueprint('alimentos', __name__)
 
@@ -77,8 +77,6 @@ def _serializar_alimento(al: Alimento) -> dict:
 @jwt_required()
 def buscar_alimento():
     codigo = request.args.get('codigo')
-    query = request.args.get('q')
-    so_safra = request.args.get('safra', 'false').lower() == 'true'
     usuario_id = int(get_jwt_identity())
 
     if codigo:
@@ -139,20 +137,7 @@ def buscar_alimento():
             current_app.logger.exception("Erro de rede ao consultar o Open Food Facts")
             return jsonify({"error": "Erro de rede ao conectar à API do Open Food Facts"}), 500
 
-    elif query:
-        q = Alimento.query.options(selectinload(Alimento.safras)).filter(
-            Alimento.nome.ilike(f"%{query}%"),
-            Alimento.codigo_barras.is_(None)
-        )
-
-        if so_safra:
-            q = q.join(Sazonalidade, Alimento.id == Sazonalidade.alimento_id)\
-                 .filter(Sazonalidade.mes == mes_atual(), Sazonalidade.safra_atual >= 3)
-
-        alimentos = q.limit(50).all()
-        return jsonify([_serializar_alimento(al) for al in alimentos])
-
-    return jsonify({"error": "Parâmetro 'codigo' ou 'q' é obrigatório"}), 400
+    return jsonify({"error": "Parâmetro 'codigo' é obrigatório"}), 400
 
 @alimentos_bp.route('/historico', methods=['GET'])
 @jwt_required()

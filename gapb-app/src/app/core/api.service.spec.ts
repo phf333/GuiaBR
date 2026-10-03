@@ -22,12 +22,12 @@ describe('ApiService', () => {
   });
 
   describe('get', () => {
-    it('deve fazer GET na URL com baseUrl e um cache-buster _t', () => {
+    it('deve fazer GET na URL com baseUrl, sem parametros extras', () => {
       service.get('/api/teste').subscribe();
 
       const req = httpMock.expectOne((r) => r.url === `${base}/api/teste`);
       expect(req.request.method).toBe('GET');
-      expect(req.request.params.has('_t')).toBeTrue();
+      expect(req.request.params.keys()).toEqual([]);
       req.flush([]);
     });
 

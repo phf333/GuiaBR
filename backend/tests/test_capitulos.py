@@ -1,12 +1,16 @@
 from flask_jwt_extended import create_access_token
 
+from app.models import ProgressoCapitulo
 
-def test_listar_capitulos_cria_progresso_inicial(client, auth_headers):
+
+def test_listar_capitulos_devolve_todos_como_active_sem_gravar_nada(client, auth_headers, app):
     resp = client.get("/api/capitulos", headers=auth_headers)
     assert resp.status_code == 200
     body = resp.get_json()
     assert [c["numero"] for c in body] == [1, 2, 3, 4, 5, 6]
     assert all(c["status"] == "active" for c in body)
+    with app.app_context():
+        assert ProgressoCapitulo.query.count() == 0
 
 
 def test_listar_capitulos_sem_token_retorna_401(client):
@@ -22,19 +26,43 @@ def test_listar_capitulos_usuario_inexistente_retorna_404(client, app):
 
 
 def test_concluir_capitulo_marca_como_done(client, auth_headers):
-    client.get("/api/capitulos", headers=auth_headers)
-
     resp = client.post("/api/capitulos/2/concluir", headers=auth_headers)
     assert resp.status_code == 200
     status_map = {c["numero"]: c["status"] for c in resp.get_json()}
     assert status_map[2] == "done"
     assert status_map[1] == "active"
 
+    status_map = {c["numero"]: c["status"] for c in client.get("/api/capitulos", headers=auth_headers).get_json()}
+    assert status_map[2] == "done"
 
-def test_concluir_capitulo_numero_fora_da_lista_nao_quebra(client, auth_headers):
-    resp = client.post("/api/capitulos/99/concluir", headers=auth_headers)
+
+def test_concluir_capitulo_duas_vezes_e_idempotente(client, auth_headers, app):
+    client.post("/api/capitulos/2/concluir", headers=auth_headers)
+    resp = client.post("/api/capitulos/2/concluir", headers=auth_headers)
+
     assert resp.status_code == 200
-    assert all(c["status"] != "done" for c in resp.get_json())
+    with app.app_context():
+        assert ProgressoCapitulo.query.count() == 1
+
+
+def test_concluir_capitulo_aproveita_linha_active_de_versao_anterior(client, registrar_usuario, app):
+    usuario, headers = registrar_usuario(email="antigo@x.com")
+    with app.app_context():
+        from app.models import db
+        db.session.add(ProgressoCapitulo(usuario_id=usuario["id"], capitulo_numero=2, status="active"))
+        db.session.commit()
+
+    status_map = {c["numero"]: c["status"] for c in client.get("/api/capitulos", headers=headers).get_json()}
+    assert status_map[2] == "active"
+
+    resp = client.post("/api/capitulos/2/concluir", headers=headers)
+    status_map = {c["numero"]: c["status"] for c in resp.get_json()}
+    assert status_map[2] == "done"
+
+
+def test_concluir_capitulo_numero_fora_da_lista_retorna_404(client, auth_headers):
+    resp = client.post("/api/capitulos/99/concluir", headers=auth_headers)
+    assert resp.status_code == 404
 
 
 def test_concluir_capitulo_usuario_inexistente_retorna_404(client, app):

@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
-import { AuthService, Usuario } from './auth.service';
+import { AuthService } from './auth.service';
+import { Usuario } from '../shared/models';
 import { environment } from '../../environments/environment';
 import { LocalDbService } from './local-db.service';
 
