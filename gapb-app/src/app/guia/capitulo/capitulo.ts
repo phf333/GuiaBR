@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { GuiaService, Capitulo, CardConteudo } from '../guia.service';
@@ -12,7 +12,7 @@ import { NavHeaderComponent } from '../../shared/components/nav-header/nav-heade
   styleUrl: './capitulo.scss',
   host: { class: 'page-fill' }
 })
-export class CapituloComponent implements OnInit, AfterViewInit {
+export class CapituloComponent implements OnInit, AfterViewInit, OnDestroy {
   capitulo: Capitulo | null = null;
   paginaAtiva = 0;
   concluidoDisparado = false;
@@ -72,6 +72,13 @@ export class CapituloComponent implements OnInit, AfterViewInit {
     }
   }
 
+
+  ngOnDestroy() {
+    // Ao sair do capítulo, manda a posição de leitura sem esperar o envio agendado.
+    if (this.capitulo) {
+      this.guiaService.enviarPosicao(this.capitulo.numero);
+    }
+  }
 
   onScroll(event: Event) {
     if (!this.capitulo) return;

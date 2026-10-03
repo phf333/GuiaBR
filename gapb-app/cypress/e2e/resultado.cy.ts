@@ -8,9 +8,7 @@ describe('Resultado do Escaneamento (/resultado)', () => {
   it('exibe alerta vermelho para um produto ultraprocessado, com aviso de origem da classificacao', () => {
     cy.intercept('GET', '**/api/alimentos/busca**', {
       statusCode: 200,
-      body: {
-        product: { product_name: 'Biscoito Recheado', brands: 'MarcaX', quantity: '200g', nova_group: 4 },
-      },
+      body: { codigo_barras: '7891000053508', nome: 'Biscoito Recheado', marca: 'MarcaX', quantidade: '200g', nova_group: 4, classificacao_guia: 'ultraprocessado', imagem_url: null },
     }).as('busca');
 
     cy.ngComponent('pag-escaneamento').then((comp: any) => comp.handleScanSuccess('7891000053508'));
@@ -26,7 +24,7 @@ describe('Resultado do Escaneamento (/resultado)', () => {
   it('exibe alerta verde para um alimento in natura', () => {
     cy.intercept('GET', '**/api/alimentos/busca**', {
       statusCode: 200,
-      body: { product: { product_name: 'Maçã', nova_group: 1 } },
+      body: { codigo_barras: '7891000053508', nome: 'Maçã', marca: null, quantidade: null, nova_group: 1, classificacao_guia: 'in natura', imagem_url: null },
     }).as('busca');
 
     cy.ngComponent('pag-escaneamento').then((comp: any) => comp.handleScanSuccess('7891000053508'));
@@ -39,7 +37,7 @@ describe('Resultado do Escaneamento (/resultado)', () => {
   it('exibe classificacao indisponivel quando o produto nao tem grupo NOVA', () => {
     cy.intercept('GET', '**/api/alimentos/busca**', {
       statusCode: 200,
-      body: { product: { product_name: 'Produto Sem Classificação' } },
+      body: { codigo_barras: '7891000053508', nome: 'Produto Sem Classificação', marca: null, quantidade: null, nova_group: null, classificacao_guia: 'indisponivel', imagem_url: null },
     }).as('busca');
 
     cy.ngComponent('pag-escaneamento').then((comp: any) => comp.handleScanSuccess('7891000053508'));
@@ -51,7 +49,7 @@ describe('Resultado do Escaneamento (/resultado)', () => {
   it('volta para /escanear ao clicar no botao de voltar', () => {
     cy.intercept('GET', '**/api/alimentos/busca**', {
       statusCode: 200,
-      body: { product: { product_name: 'Maçã', nova_group: 1 } },
+      body: { codigo_barras: '7891000053508', nome: 'Maçã', marca: null, quantidade: null, nova_group: 1, classificacao_guia: 'in natura', imagem_url: null },
     }).as('busca');
 
     cy.ngComponent('pag-escaneamento').then((comp: any) => comp.handleScanSuccess('7891000053508'));

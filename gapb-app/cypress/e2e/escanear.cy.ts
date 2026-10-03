@@ -10,8 +10,8 @@ describe('Escanear Alimento (/escanear)', () => {
     cy.intercept('GET', '**/api/alimentos/historico**', {
       statusCode: 200,
       body: [
-        { nome: 'Arroz Integral', classificacao_guia: 'in natura', codigo_barras: '7891000100103', image_url: null },
-        { nome: 'Refrigerante Cola', classificacao_guia: 'ultraprocessado', codigo_barras: '7891000053508', image_url: null },
+        { codigo_barras: '7891000100103', nome: 'Arroz Integral', marca: null, quantidade: null, nova_group: 1, classificacao_guia: 'in natura', imagem_url: null },
+        { codigo_barras: '7891000053508', nome: 'Refrigerante Cola', marca: null, quantidade: null, nova_group: 4, classificacao_guia: 'ultraprocessado', imagem_url: null },
       ],
     }).as('historico');
 
@@ -26,27 +26,22 @@ describe('Escanear Alimento (/escanear)', () => {
     cy.intercept('GET', '**/api/alimentos/historico**', {
       statusCode: 200,
       body: [
-        { nome: 'Arroz Integral', classificacao_guia: 'in natura', codigo_barras: '7891000100103', image_url: null },
+        { codigo_barras: '7891000100103', nome: 'Arroz Integral', marca: null, quantidade: null, nova_group: 1, classificacao_guia: 'in natura', imagem_url: null },
       ],
     }).as('historico');
-    cy.intercept('GET', '**/api/alimentos/busca**', {
-      statusCode: 200,
-      body: { product: { product_name: 'Arroz Integral', nova_group: 1 } },
-    }).as('busca');
-
     cy.visitAutenticado('/escanear');
     cy.wait('@historico');
 
     cy.contains('p', 'Arroz Integral').click();
-    cy.wait('@busca');
     cy.url().should('include', '/resultado');
+    cy.contains('ALIMENTO IN NATURA').should('be.visible');
   });
 
   it('remove um item do historico apos confirmar no dialogo', () => {
     cy.intercept('GET', '**/api/alimentos/historico**', {
       statusCode: 200,
       body: [
-        { nome: 'Arroz Integral', classificacao_guia: 'in natura', codigo_barras: '7891000100103', image_url: null },
+        { codigo_barras: '7891000100103', nome: 'Arroz Integral', marca: null, quantidade: null, nova_group: 1, classificacao_guia: 'in natura', imagem_url: null },
       ],
     }).as('historico');
     cy.intercept('DELETE', '**/api/alimentos/historico/7891000100103', { statusCode: 200, body: {} }).as('excluir');
@@ -66,7 +61,7 @@ describe('Escanear Alimento (/escanear)', () => {
     cy.intercept('GET', '**/api/alimentos/historico**', {
       statusCode: 200,
       body: [
-        { nome: 'Arroz Integral', classificacao_guia: 'in natura', codigo_barras: '7891000100103', image_url: null },
+        { codigo_barras: '7891000100103', nome: 'Arroz Integral', marca: null, quantidade: null, nova_group: 1, classificacao_guia: 'in natura', imagem_url: null },
       ],
     }).as('historicoOk');
     cy.visitAutenticado('/escanear');
@@ -84,7 +79,7 @@ describe('Escanear Alimento (/escanear)', () => {
     cy.intercept('GET', '**/api/alimentos/historico**', { statusCode: 200, body: [] }).as('historico');
     cy.intercept('GET', '**/api/alimentos/busca**', {
       statusCode: 200,
-      body: { product: { product_name: 'Biscoito Recheado', nova_group: 4 } },
+      body: { codigo_barras: '7891000053508', nome: 'Biscoito Recheado', marca: null, quantidade: null, nova_group: 4, classificacao_guia: 'ultraprocessado', imagem_url: null },
     }).as('busca');
 
     cy.visitAutenticado('/escanear');

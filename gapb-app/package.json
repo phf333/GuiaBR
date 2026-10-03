@@ -8,6 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:headless": "set \"CHROME_BIN=C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" && ng test --watch=false --browsers=ChromeHeadless --code-coverage",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadless --code-coverage",
     "e2e": "ng e2e",
     "e2e:open": "start-server-and-test start http://localhost:4200 cypress:open",
     "e2e:run": "start-server-and-test start http://localhost:4200 cypress:run",

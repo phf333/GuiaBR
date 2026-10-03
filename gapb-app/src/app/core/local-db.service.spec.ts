@@ -1,4 +1,4 @@
-import { LocalDbService } from './local-db.service';
+import { LocalDbService, SyncTask, trocarRefeicaoId } from './local-db.service';
 import { Alimento, Refeicao } from '../shared/models';
 
 /**
@@ -257,18 +257,19 @@ describe('LocalDbService', () => {
       const add = jasmine.createSpy('add').and.resolveTo();
       (service as any).db = { sync_queue: { add } };
 
-      await service.addToSyncQueue('criar_refeicao', { x: 1 });
+      await service.addToSyncQueue('deletar_refeicao', { id: 1 });
 
       expect(add).toHaveBeenCalledWith(
-        jasmine.objectContaining({ action: 'criar_refeicao', payload: { x: 1 } }),
+        jasmine.objectContaining({ action: 'deletar_refeicao', payload: { id: 1 }, timestamp: jasmine.any(Number) }),
       );
     });
 
     it('getSyncQueue deve retornar as tarefas pendentes', async () => {
-      const toArray = jasmine.createSpy('toArray').and.resolveTo([{ id: 1 }]);
+      const fila: SyncTask[] = [{ id: 1, action: 'deletar_refeicao', payload: { id: 2 }, timestamp: 1 }];
+      const toArray = jasmine.createSpy('toArray').and.resolveTo(fila);
       (service as any).db = { sync_queue: { toArray } };
 
-      expect(await service.getSyncQueue()).toEqual([{ id: 1 }]);
+      expect(await service.getSyncQueue()).toEqual(fila);
     });
 
     it('removeFromSyncQueue deve remover a tarefa pelo id', async () => {
@@ -278,6 +279,87 @@ describe('LocalDbService', () => {
       await service.removeFromSyncQueue(1);
 
       expect(del).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('trocarRefeicaoId', () => {
+    it('deve trocar o id nas tarefas que citam a refeicao temporaria', () => {
+      const item: SyncTask = { action: 'adicionar_item', payload: { refeicaoId: -5, alimentoId: 1 }, timestamp: 1 };
+      const exclusao: SyncTask = { action: 'deletar_refeicao', payload: { id: -5 }, timestamp: 1 };
+
+      expect(trocarRefeicaoId(item, -5, 100)).toBeTrue();
+      expect(trocarRefeicaoId(exclusao, -5, 100)).toBeTrue();
+
+      expect(item.payload).toEqual({ refeicaoId: 100, alimentoId: 1 });
+      expect(exclusao.payload).toEqual({ id: 100 });
+    });
+
+    it('nao deve alterar tarefas de outra refeicao ou de outro tipo', () => {
+      const outra: SyncTask = { action: 'remover_item', payload: { refeicaoId: -9, alimentoId: 1 }, timestamp: 1 };
+      const capitulo: SyncTask = { action: 'concluir_capitulo', payload: { numero: -5 }, timestamp: 1 };
+
+      expect(trocarRefeicaoId(outra, -5, 100)).toBeFalse();
+      expect(trocarRefeicaoId(capitulo, -5, 100)).toBeFalse();
+      expect(capitulo.payload).toEqual({ numero: -5 });
+    });
+
+    it('trocarRefeicaoIdNaFila deve aplicar a troca a todas as tarefas salvas', async () => {
+      const fila: SyncTask[] = [
+        { id: 1, action: 'adicionar_item', payload: { refeicaoId: -5, alimentoId: 1 }, timestamp: 1 },
+        { id: 2, action: 'adicionar_item', payload: { refeicaoId: 7, alimentoId: 1 }, timestamp: 1 },
+      ];
+      (service as any).db = {
+        sync_queue: { toCollection: () => ({ modify: async (fn: (t: SyncTask) => void) => fila.forEach(fn) }) },
+      };
+
+      await service.trocarRefeicaoIdNaFila(-5, 100);
+
+      expect(fila.map((t) => (t.payload as { refeicaoId: number }).refeicaoId)).toEqual([100, 7]);
+    });
+  });
+
+  describe('cache', () => {
+    it('getCache deve devolver o valor guardado para a chave', async () => {
+      (service as any).db = { cache: { get: async (chave: string) => ({ chave, valor: [1, 2] }) } };
+
+      expect(await service.getCache<number[]>('x')).toEqual([1, 2]);
+    });
+
+    it('getCache deve devolver null quando a chave nao existe', async () => {
+      (service as any).db = { cache: { get: async () => undefined } };
+
+      expect(await service.getCache('x')).toBeNull();
+    });
+
+    it('setCache deve gravar o valor sob a chave', async () => {
+      const put = jasmine.createSpy('put').and.resolveTo();
+      (service as any).db = { cache: { put } };
+
+      await service.setCache('x', [1]);
+
+      expect(put).toHaveBeenCalledWith({ chave: 'x', valor: [1] });
+    });
+  });
+
+  describe('clearUserData', () => {
+    it('deve apagar refeicoes, fila e cache, preservando a base de alimentos', async () => {
+      const clearRefeicoes = jasmine.createSpy('clearRefeicoes').and.resolveTo();
+      const clearFila = jasmine.createSpy('clearFila').and.resolveTo();
+      const clearCache = jasmine.createSpy('clearCache').and.resolveTo();
+      const clearAlimentos = jasmine.createSpy('clearAlimentos').and.resolveTo();
+      (service as any).db = {
+        refeicoes: { clear: clearRefeicoes },
+        sync_queue: { clear: clearFila },
+        cache: { clear: clearCache },
+        alimentos: { clear: clearAlimentos },
+      };
+
+      await service.clearUserData();
+
+      expect(clearRefeicoes).toHaveBeenCalled();
+      expect(clearFila).toHaveBeenCalled();
+      expect(clearCache).toHaveBeenCalled();
+      expect(clearAlimentos).not.toHaveBeenCalled();
     });
   });
 });

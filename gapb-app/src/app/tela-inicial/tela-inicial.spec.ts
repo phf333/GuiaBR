@@ -1,7 +1,8 @@
 import { BehaviorSubject } from 'rxjs';
 import { Router } from '@angular/router';
 import { TelaInicial } from './tela-inicial';
-import { AuthService, Usuario } from '../core/auth.service';
+import { AuthService } from '../core/auth.service';
+import { Usuario } from '../shared/models';
 import { GuiaService, Capitulo } from '../guia/guia.service';
 
 describe('TelaInicial', () => {

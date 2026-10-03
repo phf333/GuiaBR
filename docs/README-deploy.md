@@ -65,21 +65,17 @@ _Isso criará o banco Postgres, subirá o backend Flask em produção na porta 5
 
 ### 2. Criar e Popular o Banco de Dados (Seed)
 
-_O `data/sazonalidade_consolidada_produtos.csv` não é gerado automaticamente — se ele estiver ausente ou desatualizado (nova planilha da CEAGESP), gere-o **antes** do `docker compose up --build` seguindo os passos em [README.md](../README.md#2-executar-carga-inicial-de-dados-seed), já que o arquivo é copiado pra dentro da imagem no build._
+_O `data/sazonalidade_consolidada_produtos.csv` não é gerado automaticamente — se ele estiver ausente ou desatualizado (nova planilha da CEAGESP), gere-o **antes** do `docker compose up --build` seguindo os passos em [README.md](../README.md#como-executar-desenvolvimento-local), já que o arquivo é copiado pra dentro da imagem no build._
 
-Na primeira execução, é necessário rodar os scripts de seed para criar as tabelas no PostgreSQL, importar a sazonalidade dos alimentos e cadastrar os alimentos básicos do Guia Alimentar:
+Na primeira execução, é necessário rodar o seed para criar as tabelas no PostgreSQL (pelas migrações), importar a sazonalidade dos alimentos e cadastrar os alimentos básicos do Guia Alimentar:
 
 ```bash
-# Cria as tabelas e importa alimentos com sazonalidade (CSV)
 docker compose exec backend python scripts/seed.py
-
-# Importa alimentos básicos de referência do Guia Alimentar Brasileiro
-docker compose exec backend python scripts/seed_basicos.py
 ```
 
 _Você verá a mensagem de criação das tabelas e importação dos alimentos com sucesso._
 
-Para limpar e recarregar os alimentos do zero (sem apagar usuários, refeições ou progresso), existe também `scripts/reset_db.py` — veja o cabeçalho do arquivo para detalhes do que é preservado.
+Para apagar e recarregar os alimentos do zero, rode `docker compose exec backend python scripts/seed.py --reset`. Usuários e progresso dos capítulos são preservados; os itens das refeições e o histórico do scanner são apagados, porque os ids dos alimentos mudam.
 
 ---
 
@@ -130,6 +126,24 @@ docker compose up -d --build
   docker compose build backend
   docker compose up -d backend
   ```
+
+---
+
+### 3. Aplicar migrações do banco
+
+Quando a atualização trouxer mudanças no banco (arquivos novos em `backend/migrations/versions/`), aplique-as depois de recriar o backend:
+
+```bash
+docker compose exec backend flask db upgrade
+```
+
+Se o banco deste ambiente foi criado antes de existirem migrações, rode uma única vez, antes do `upgrade`:
+
+```bash
+docker compose exec backend flask db stamp 0001
+```
+
+_Detalhes em [README.md](../README.md#migrações-do-banco)._
 
 ---
 

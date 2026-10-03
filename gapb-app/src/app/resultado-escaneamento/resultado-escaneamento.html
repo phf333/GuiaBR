@@ -6,12 +6,12 @@
     <!-- Card do produto -->
     <div class="resultado-card">
       <img
-        *ngIf="produto?.product?.image_url"
-        [src]="produto.product.image_url"
+        *ngIf="produto?.imagem_url"
+        [src]="produto!.imagem_url"
         alt="Imagem do produto"
         class="resultado-card__thumb"
       />
-      <div *ngIf="!produto?.product?.image_url" class="resultado-card__thumb">
+      <div *ngIf="!produto?.imagem_url" class="resultado-card__thumb">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="resultado-card__thumb-icon"><use href="/assets/icons.svg#image-placeholder" /></svg>
       </div>
       <div class="resultado-card__info">

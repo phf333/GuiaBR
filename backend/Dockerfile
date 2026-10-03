@@ -17,4 +17,6 @@ ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
 # Comando para iniciar o backend de produção via Gunicorn
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:create_app()"]
+# Um processo com threads: a consulta ao Open Food Facts não bloqueia as demais requisições
+# e o rate limit em memória continua valendo para todas elas.
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "--threads", "4", "app:create_app()"]

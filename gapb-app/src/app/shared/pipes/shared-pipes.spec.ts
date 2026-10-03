@@ -1,5 +1,6 @@
 import {
   classificarPorNovaGroup,
+  ClassificacaoNovaPipe,
   ClasseGuiaPipe,
   LabelClassePipe,
   ClasseSafraPipe,
@@ -42,6 +43,14 @@ describe('classificarPorNovaGroup', () => {
     const res = classificarPorNovaGroup(99);
     expect(res.hasNova).toBeFalse();
     expect(res.tipo).toBe('indisponivel');
+  });
+});
+
+describe('ClassificacaoNovaPipe', () => {
+  it('deve devolver a classificacao do grupo NOVA', () => {
+    const pipe = new ClassificacaoNovaPipe();
+    expect(pipe.transform(4).tipo).toBe('ultraprocessado');
+    expect(pipe.transform(null).tipo).toBe('indisponivel');
   });
 });
 

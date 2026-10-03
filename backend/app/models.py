@@ -1,7 +1,38 @@
+from datetime import datetime, timedelta, timezone
+
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
+
+# O Brasil não tem horário de verão desde 2019; o offset fixo evita depender de tzdata na imagem.
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
+
+
+def mes_atual() -> int:
+    """Mês corrente no horário de Brasília (o servidor roda em UTC)."""
+    return datetime.now(FUSO_BRASILIA).month
+
+
+# Produtos do CSV da CEAGESP cujo grupo comercial não corresponde ao grupo alimentar do Guia.
+CATEGORIA_GUIA_POR_NOME = {
+    'BATATA': 'cereal_tuberculo',
+    'BATATA-DOCE': 'cereal_tuberculo',
+    'CARÁ': 'cereal_tuberculo',
+    'INHAME': 'cereal_tuberculo',
+    'MANDIOCA': 'cereal_tuberculo',
+    'MANDIOQUINHA': 'cereal_tuberculo',
+    'MILHO VERDE': 'cereal_tuberculo',
+    'MILHO DE PIPOCA': 'cereal_tuberculo',
+    'ERVILHA': 'leguminosa',
+    'FEIJÃO-DE-CORDA': 'leguminosa',
+    'AMENDOIM': 'oleaginosa',
+    'AMÊNDOA': 'oleaginosa',
+    'AVELÃ': 'oleaginosa',
+    'CASTANHA': 'oleaginosa',
+    'NOZES': 'oleaginosa',
+    'OVOS': 'proteina',
+}
 
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
@@ -34,13 +65,16 @@ class Alimento(db.Model):
 
     safras = db.relationship('Sazonalidade', backref='alimento', cascade='all, delete-orphan')
 
+    __table_args__ = (
+        db.UniqueConstraint('codigo_barras', name='uq_alimentos_codigo_barras'),
+    )
+
     @property
     def sazonalidade_atual(self) -> dict | None:
         """Retorna o dado de sazonalidade do mês atual, se existir."""
-        from datetime import datetime
-        mes_atual = datetime.now().month
+        mes = mes_atual()
         for safra in self.safras:
-            if safra.mes == mes_atual:
+            if safra.mes == mes:
                 valor = safra.safra_atual
                 nivel = 'alta' if valor == 4 else ('media' if valor >= 2 else ('baixa' if valor == 1 else 'fora'))
                 mapa_safra_texto = {
@@ -64,6 +98,9 @@ class Alimento(db.Model):
         classe = (self.classificacao_guia or '').lower()
         if classe == 'ultraprocessado':
             return 'ultraprocessado'
+        por_nome = CATEGORIA_GUIA_POR_NOME.get((self.nome or '').strip().upper())
+        if por_nome:
+            return por_nome
         if grupo == 'FRUTAS':
             return 'fruta'
         if grupo in {'CEREAIS', 'TUBERCULOS'}:
@@ -124,7 +161,9 @@ class ProgressoCapitulo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
     capitulo_numero = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='active') 
+    status = db.Column(db.String(20), nullable=False, default='active')
+    # Índice do card em que o usuário parou no capítulo.
+    ultimo_card = db.Column(db.Integer, nullable=False, default=0, server_default='0')
     data_atualizacao = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
     __table_args__ = (

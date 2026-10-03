@@ -59,11 +59,13 @@ export interface Refeicao {
   analise?: AnaliseRefeicao;
 }
 
-export interface ItemEscaneado {
+/** Produto identificado pelo código de barras, como devolvido por /api/alimentos/busca e /historico. */
+export interface ProdutoEscaneado {
+  codigo_barras: string;
   nome: string;
-  label: string;
-  tipo: 'ultraprocessado' | 'saudavel' | 'indisponivel';
-  barcode: string;
-  dados: any;
-  imageUrl?: string;
+  marca: string | null;
+  quantidade: string | null;
+  nova_group: number | null;
+  classificacao_guia: string;
+  imagem_url: string | null;
 }

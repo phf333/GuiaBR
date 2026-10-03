@@ -1,8 +1,9 @@
 import os
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from app.config import Config
+from app.extensions import limiter, migrate
 from app.models import db
 
 def create_app(config_object=Config):
@@ -26,7 +27,13 @@ def create_app(config_object=Config):
     CORS(app, origins=origins)
 
     db.init_app(app)
+    migrate.init_app(app, db)
     JWTManager(app)
+    limiter.init_app(app)
+
+    @app.errorhandler(429)
+    def limite_excedido(_erro):
+        return jsonify({'error': 'Muitas tentativas. Aguarde um minuto e tente novamente.'}), 429
 
     # Registro de Blueprints
     from app.routes.alimentos import alimentos_bp

@@ -1,9 +1,10 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
+import re
 import requests
-from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload, selectinload
-from app.models import db, Alimento, HistoricoScanner, Sazonalidade
+from app.models import db, Alimento, HistoricoScanner
 
 alimentos_bp = Blueprint('alimentos', __name__)
 
@@ -35,6 +36,33 @@ def _classificar_por_nova_group(nova_group) -> str:
     return mapa.get(nova_group, 'indisponivel')
 
 
+def _extrair_dados_off(product: dict) -> dict:
+    """Seleciona, da resposta do Open Food Facts, só o que o app exibe."""
+    return {
+        'marca': product.get('brands') or None,
+        'quantidade': product.get('quantity') or None,
+        'nova_group': product.get('nova_group'),
+        'imagem_url': product.get('image_url')
+                      or product.get('image_front_thumb_url')
+                      or product.get('image_front_url'),
+    }
+
+
+def _serializar_produto(al: Alimento) -> dict:
+    """Resposta enxuta para o app; dados_completos guarda a resposta inteira do OFF."""
+    dados = _extrair_dados_off((al.dados_completos or {}).get('product', {}))
+    nova_group = dados.get('nova_group')
+    return {
+        'codigo_barras': al.codigo_barras,
+        'nome': al.nome,
+        'marca': dados.get('marca'),
+        'quantidade': dados.get('quantidade'),
+        'nova_group': nova_group,
+        'classificacao_guia': _classificar_por_nova_group(nova_group),
+        'imagem_url': dados.get('imagem_url'),
+    }
+
+
 def _serializar_alimento(al: Alimento) -> dict:
     return {
         'id': al.id,
@@ -45,41 +73,22 @@ def _serializar_alimento(al: Alimento) -> dict:
     }
 
 
-def _sincronizar_classificacao(alimento: Alimento) -> bool:
-    """Atualiza classificacao_guia em memoria caso o nova_group salvo nao bata mais
-    com o valor calculado. Retorna True se houve alteracao (o commit fica a cargo do chamador)."""
-    if not alimento.dados_completos:
-        return False
-    nova_group = alimento.dados_completos.get('product', {}).get('nova_group')
-    correct = _classificar_por_nova_group(nova_group)
-    if alimento.classificacao_guia != correct:
-        alimento.classificacao_guia = correct
-        return True
-    return False
-
-
 @alimentos_bp.route('/busca', methods=['GET'])
 @jwt_required()
 def buscar_alimento():
     codigo = request.args.get('codigo')
-    query = request.args.get('q')
-    historico_param = request.args.get('historico', 'true').lower() != 'false'
-    so_safra = request.args.get('safra', 'false').lower() == 'true'
     usuario_id = int(get_jwt_identity())
 
     if codigo:
+        # O código entra na URL do Open Food Facts; só dígitos (EAN/UPC têm até 14).
+        if not re.fullmatch(r'[0-9]{1,14}', codigo):
+            return jsonify({"error": "Código de barras inválido"}), 400
+
         alimento = Alimento.query.filter_by(codigo_barras=codigo).first()
         
         if alimento and alimento.dados_completos:
-            data = alimento.dados_completos
-
-            if _sincronizar_classificacao(alimento):
-                db.session.commit()
-
-            if historico_param:
-                _registrar_historico(usuario_id, alimento.id)
-                
-            return jsonify(data)
+            _registrar_historico(usuario_id, alimento.id)
+            return jsonify(_serializar_produto(alimento))
 
         off_url = f"https://world.openfoodfacts.org/api/v3/product/{codigo}.json"
         headers = {
@@ -96,9 +105,7 @@ def buscar_alimento():
             
             product = data['product']
             nome = product.get('product_name') or 'Produto desconhecido'
-            nova_group = product.get('nova_group')
-
-            classificacao = _classificar_por_nova_group(nova_group)
+            classificacao = _classificar_por_nova_group(product.get('nova_group'))
 
             if alimento:
                 alimento.dados_completos = data
@@ -115,32 +122,22 @@ def buscar_alimento():
                 )
                 db.session.add(alimento)
             
-            db.session.commit()
- 
-            if historico_param:
-                _registrar_historico(usuario_id, alimento.id)
+            try:
+                db.session.commit()
+            except IntegrityError:
+                # Outra requisição cadastrou o mesmo código de barras ao mesmo tempo.
+                db.session.rollback()
+                alimento = Alimento.query.filter_by(codigo_barras=codigo).first()
 
-            return jsonify(data)
-            
-        except requests.exceptions.RequestException as e:
-            return jsonify({"error": f"Erro de rede ao conectar à API do OFF: {str(e)}"}), 500
+            _registrar_historico(usuario_id, alimento.id)
 
-    elif query:
-        mes_atual = datetime.now().month
+            return jsonify(_serializar_produto(alimento))
 
-        q = Alimento.query.options(selectinload(Alimento.safras)).filter(
-            Alimento.nome.ilike(f"%{query}%"),
-            Alimento.codigo_barras.is_(None)
-        )
+        except requests.exceptions.RequestException:
+            current_app.logger.exception("Erro de rede ao consultar o Open Food Facts")
+            return jsonify({"error": "Erro de rede ao conectar à API do Open Food Facts"}), 500
 
-        if so_safra:
-            q = q.join(Sazonalidade, Alimento.id == Sazonalidade.alimento_id)\
-                 .filter(Sazonalidade.mes == mes_atual, Sazonalidade.safra_atual >= 3)
-
-        alimentos = q.limit(50).all()
-        return jsonify([_serializar_alimento(al) for al in alimentos])
-
-    return jsonify({"error": "Parâmetro 'codigo' ou 'q' é obrigatório"}), 400
+    return jsonify({"error": "Parâmetro 'codigo' é obrigatório"}), 400
 
 @alimentos_bp.route('/historico', methods=['GET'])
 @jwt_required()
@@ -151,33 +148,10 @@ def obter_historico():
         .options(joinedload(HistoricoScanner.alimento))\
         .order_by(HistoricoScanner.data_consulta.desc()).limit(20).all()
 
-    resultado = []
-    need_commit = False
-    for h in historico:
-        al = h.alimento
-        if al:
-            if _sincronizar_classificacao(al):
-                need_commit = True
-
-            image_url = None
-            if al.dados_completos:
-                image_url = al.dados_completos.get('product', {}).get('image_url') or \
-                            al.dados_completos.get('product', {}).get('image_front_thumb_url') or \
-                            al.dados_completos.get('product', {}).get('image_front_url')
-            
-            resultado.append({
-                "nome": al.nome,
-                "grupo": al.grupo,
-                "classificacao_guia": al.classificacao_guia,
-                "codigo_barras": al.codigo_barras,
-                "data_consulta": h.data_consulta.isoformat(),
-                "image_url": image_url
-            })
-
-    if need_commit:
-        db.session.commit()
-
-    return jsonify(resultado)
+    return jsonify([
+        {**_serializar_produto(h.alimento), 'data_consulta': h.data_consulta.isoformat()}
+        for h in historico if h.alimento
+    ])
 
 @alimentos_bp.route('/todos', methods=['GET'])
 @jwt_required()

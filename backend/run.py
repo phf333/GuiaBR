@@ -10,6 +10,9 @@ if __name__ == '__main__':
         ('../gapb-app/certificados/cert.crt', '../gapb-app/certificados/cert.key')
     ]
     
+    # O depurador do Werkzeug permite executar código; só liga com FLASK_DEBUG=1.
+    debug = os.environ.get('FLASK_DEBUG') == '1'
+
     ssl_ctx = None
     for cert, key in certs:
         if os.path.exists(cert) and os.path.exists(key):
@@ -19,8 +22,8 @@ if __name__ == '__main__':
             
     if ssl_ctx:
         print("Iniciando Flask com SSL (HTTPS)...")
-        app.run(host='0.0.0.0', port=5000, debug=True, ssl_context=ssl_ctx)
+        app.run(host='0.0.0.0', port=5000, debug=debug, ssl_context=ssl_ctx)
     else:
         print("Iniciando Flask em modo HTTP normal...")
-        app.run(host='0.0.0.0', port=5000, debug=True)
+        app.run(host='0.0.0.0', port=5000, debug=debug)
 

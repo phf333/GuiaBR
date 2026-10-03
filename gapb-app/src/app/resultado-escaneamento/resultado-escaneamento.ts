@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { NOVA_GROUPS, classificarPorNovaGroup } from '../shared/pipes/shared-pipes';
+import { ProdutoEscaneado } from '../shared/models';
 import { NavHeaderComponent } from '../shared/components/nav-header/nav-header';
 
 @Component({
@@ -13,7 +14,7 @@ import { NavHeaderComponent } from '../shared/components/nav-header/nav-header';
   host: { class: 'page-fill' },
 })
 export class ResultadoComponent implements OnInit {
-  produto: any = null;
+  produto: ProdutoEscaneado | null = null;
 
   nomeProduto = '';
   marcaQuantidade = '';
@@ -29,18 +30,16 @@ export class ResultadoComponent implements OnInit {
 
   ngOnInit() {
     if (this.produto) {
-      this.montarDados();
+      this.montarDados(this.produto);
     }
   }
 
-  montarDados() {
-    const p = this.produto.product;
-    this.nomeProduto = p?.product_name || 'Produto desconhecido';
-    this.marcaQuantidade = [p?.brands, p?.quantity].filter(Boolean).join(' – ');
+  montarDados(produto: ProdutoEscaneado) {
+    this.nomeProduto = produto.nome;
+    this.marcaQuantidade = [produto.marca, produto.quantidade].filter(Boolean).join(' – ');
 
-    const nova: number = p?.nova_group;
-    const classificacao = classificarPorNovaGroup(nova);
-    const groupInfo = classificacao.hasNova ? NOVA_GROUPS[nova] : null;
+    const classificacao = classificarPorNovaGroup(produto.nova_group);
+    const groupInfo = classificacao.hasNova ? NOVA_GROUPS[produto.nova_group!] : null;
     this.alertaTitulo = groupInfo?.titulo ?? 'CLASSIFICAÇÃO INDISPONÍVEL';
     this.alertaDescricao = groupInfo?.descricao ?? 'Não foi possível obter o grau de processamento deste produto.';
     this.alertaClass = classificacao.tipo === 'ultraprocessado'

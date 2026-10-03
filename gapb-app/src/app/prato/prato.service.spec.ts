@@ -119,7 +119,7 @@ describe('PratoService', () => {
       localDbSpy.getRefeicao.and.resolveTo(null);
 
       await expectAsync(firstValueFrom(service.obter(1))).toBeRejectedWithError(
-        'Refeição não encontrada offline',
+        'Refeição não encontrada no cache local',
       );
     });
   });

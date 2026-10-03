@@ -3,7 +3,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subject, combineLatest } from 'rxjs';
 import { takeUntil, map } from 'rxjs/operators';
-import { AuthService, Usuario } from '../core/auth.service';
+import { AuthService } from '../core/auth.service';
+import { Usuario } from '../shared/models';
 import { GuiaService } from '../guia/guia.service';
 
 interface MenuItem {
